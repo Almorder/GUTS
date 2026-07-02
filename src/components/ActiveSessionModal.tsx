@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { X, Check, Timer } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { X, Check, Timer, ArrowRight, Play } from 'lucide-react';
 import { db } from '../lib/db';
 import { haptic } from '../lib/haptics';
 import type { SubSet, CycleType } from '../lib/db';
@@ -27,23 +27,65 @@ interface ActiveSet extends SubSet {
 }
 
 export default function ActiveSessionModal({ session, cycleType, onClose, onSave }: ActiveSessionProps) {
-  // If no structured_focus is available, fallback to a single Front Lever hold to prevent crash
   const initialSets: ActiveSet[] = session.structured_focus && session.structured_focus.length > 0 
     ? session.structured_focus.map(s => ({ ...s, targetReps: s.reps, targetDuration: s.duration, targetWeight: s.weight, reps: 0, duration: 0, weight: s.weight || 0 }))
     : [{ movement: 'Front Lever' as any, mechanic: 'Hold' as any, level: 'Full' as any, reps: 0, duration: 0, weight: 0, targetDuration: 5 }];
 
   const [activeSets, setActiveSets] = useState<ActiveSet[]>(initialSets);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isResting, setIsResting] = useState(false);
+  const [restTimeLeft, setRestTimeLeft] = useState(0);
   const [energy, setEnergy] = useState(7);
   const [saved, setSaved] = useState(false);
 
-  const updateSet = (index: number, updates: Partial<typeof activeSets[0]>) => {
+  const currentSet = activeSets[currentIndex];
+  const isFinished = currentIndex >= activeSets.length;
+
+  // Rest Timer Logic
+  useEffect(() => {
+    let interval: number;
+    if (isResting && restTimeLeft > 0) {
+      interval = setInterval(() => {
+        setRestTimeLeft(prev => {
+          if (prev <= 1) {
+            haptic.success(); // Vibrate when rest is over
+            setIsResting(false);
+            setCurrentIndex(idx => idx + 1);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } else if (isResting && restTimeLeft === 0) {
+      setIsResting(false);
+      setCurrentIndex(idx => idx + 1);
+    }
+    return () => clearInterval(interval);
+  }, [isResting, restTimeLeft]);
+
+  const updateCurrentSet = (updates: Partial<ActiveSet>) => {
     const newSets = [...activeSets];
-    newSets[index] = { ...newSets[index], ...updates };
+    newSets[currentIndex] = { ...newSets[currentIndex], ...updates };
     setActiveSets(newSets);
   };
 
+  const handleCompleteSet = () => {
+    if (currentSet.isSuperSet || !currentSet.targetRest) {
+      // Direct to next set
+      setCurrentIndex(prev => prev + 1);
+    } else {
+      // Go to rest
+      setRestTimeLeft(currentSet.targetRest);
+      setIsResting(true);
+    }
+  };
+
+  const handleSkipRest = () => {
+    setIsResting(false);
+    setCurrentIndex(prev => prev + 1);
+  };
+
   const handleSave = () => {
-    // Only save sets where the user actually did something
     const validSets = activeSets.filter(s => s.reps > 0 || s.duration > 0 || s.weight > 0);
     
     db.addLog({
@@ -51,7 +93,7 @@ export default function ActiveSessionModal({ session, cycleType, onClose, onSave
       is_exam: false,
       energy_level: energy,
       tags: ['✅ Planner Session'],
-      sets: validSets.map(({ targetReps, targetDuration, targetWeight, ...rest }) => rest), // remove targets
+      sets: validSets.map(({ targetReps, targetDuration, targetWeight, ...rest }) => rest),
     });
 
     haptic.success();
@@ -61,26 +103,7 @@ export default function ActiveSessionModal({ session, cycleType, onClose, onSave
     }, 800);
   };
 
-  const calculateProgress = () => {
-    let totalTarget = 0;
-    let totalActual = 0;
-
-    activeSets.forEach(s => {
-      if (s.targetReps) {
-        totalTarget += s.targetReps;
-        totalActual += Math.min(s.reps, s.targetReps);
-      }
-      if (s.targetDuration) {
-        totalTarget += s.targetDuration;
-        totalActual += Math.min(s.duration, s.targetDuration);
-      }
-    });
-
-    if (totalTarget === 0) return 0;
-    return Math.min(Math.round((totalActual / totalTarget) * 100), 100);
-  };
-
-  const progress = calculateProgress();
+  const progress = isFinished ? 100 : Math.round((currentIndex / activeSets.length) * 100);
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
@@ -116,7 +139,7 @@ export default function ActiveSessionModal({ session, cycleType, onClose, onSave
         {/* Global Progress Bar */}
         <div className="px-5 py-4 bg-brand-text/5 border-b border-brand-border/20 shrink-0">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] uppercase font-bold tracking-widest text-brand-text/50">Progression</span>
+            <span className="text-[10px] uppercase font-bold tracking-widest text-brand-text/50">Progression globale</span>
             <span className="text-sm font-bold text-brand-accent">{progress}%</span>
           </div>
           <div className="w-full h-2 bg-brand-border/30 rounded-full overflow-hidden">
@@ -128,97 +151,180 @@ export default function ActiveSessionModal({ session, cycleType, onClose, onSave
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-5 py-6 flex flex-col gap-8 custom-scrollbar">
-          {activeSets.map((set, i) => (
-            <div key={i} className="bg-brand-bg border border-brand-border/50 rounded-2xl p-4 shadow-sm">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex flex-col">
-                  <span className="font-bold text-lg text-brand-text">{set.movement}</span>
-                  <span className="text-[10px] uppercase tracking-widest text-brand-text/50">{set.mechanic} · {set.level}</span>
+        <div className="flex-1 overflow-y-auto px-5 py-6 flex flex-col custom-scrollbar relative">
+          <AnimatePresence mode="wait">
+            
+            {/* 1. RESTING VIEW */}
+            {isResting && (
+              <motion.div
+                key="resting"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                className="flex flex-col items-center justify-center flex-1 py-10"
+              >
+                <div className="text-[10px] uppercase font-bold tracking-widest text-brand-accent mb-6">Récupération</div>
+                
+                <div className="relative w-48 h-48 rounded-full border-4 border-brand-accent/20 flex items-center justify-center mb-8 shadow-[0_0_40px_rgba(204,70,12,0.1)]">
+                  <div className="text-6xl font-bold tabular-nums text-brand-text tracking-tighter">
+                    {Math.floor(restTimeLeft / 60)}:{(restTimeLeft % 60).toString().padStart(2, '0')}
+                  </div>
                 </div>
-                <div className="text-right">
-                  <span className="text-xs font-bold text-brand-accent bg-brand-accent/10 px-2 py-1 rounded-md">
-                    Objectif : {set.targetReps ? `${set.targetReps}r` : ''} {set.targetDuration ? `${set.targetDuration}s` : ''} {set.targetWeight ? `+${set.targetWeight}kg` : ''}
+
+                {currentIndex + 1 < activeSets.length && (
+                  <div className="bg-brand-text/5 p-4 rounded-2xl w-full text-center border border-brand-border/30">
+                    <span className="text-[10px] uppercase font-bold tracking-widest text-brand-text/50 block mb-1">Ensuite</span>
+                    <span className="font-bold text-lg text-brand-text block">{activeSets[currentIndex + 1].movement}</span>
+                    <span className="text-xs text-brand-text/60 font-medium">{activeSets[currentIndex + 1].mechanic} · {activeSets[currentIndex + 1].level}</span>
+                  </div>
+                )}
+              </motion.div>
+            )}
+
+            {/* 2. WORKOUT VIEW */}
+            {!isResting && !isFinished && (
+              <motion.div
+                key="workout"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="flex flex-col flex-1"
+              >
+                <div className="flex items-center justify-between mb-6">
+                  <span className="text-[10px] uppercase font-bold tracking-widest text-brand-text/50 bg-brand-text/5 px-3 py-1.5 rounded-md">
+                    Série {currentIndex + 1} / {activeSets.length}
                   </span>
+                  {currentSet.isSuperSet && (
+                    <span className="text-[10px] uppercase font-bold tracking-widest text-brand-accent bg-brand-accent/10 px-3 py-1.5 rounded-md flex items-center gap-1">
+                      <ArrowRight size={12} /> SuperSet
+                    </span>
+                  )}
                 </div>
-              </div>
 
-              <div className="flex flex-col gap-3">
-                {set.targetReps !== undefined && set.targetReps > 0 && (
-                  <MetricAdjuster
-                    label="Répétitions"
-                    value={set.reps}
-                    target={set.targetReps}
-                    onChange={(v) => updateSet(i, { reps: Math.max(0, v) })}
-                    step={1}
-                  />
-                )}
-                {set.targetDuration !== undefined && set.targetDuration > 0 && (
-                  <MetricAdjuster
-                    label="Temps (sec)"
-                    value={set.duration}
-                    target={set.targetDuration}
-                    onChange={(v) => updateSet(i, { duration: Math.max(0, v) })}
-                    step={1}
-                    hasTimer
-                  />
-                )}
-                <MetricAdjuster
-                  label="Lest (kg)"
-                  value={set.weight}
-                  onChange={(v) => updateSet(i, { weight: v })}
-                  step={2.5}
-                  format={(v) => v > 0 ? `+${v}` : `${v}`}
-                />
-              </div>
-            </div>
-          ))}
+                <div className="text-center mb-8">
+                  <h3 className="font-serif font-bold text-4xl mb-2 tracking-tight">{currentSet.movement}</h3>
+                  <p className="text-sm font-bold uppercase tracking-widest text-brand-text/50">{currentSet.mechanic} · {currentSet.level}</p>
+                </div>
 
-          {/* Energy Slider */}
-          <div>
-            <label className="text-[10px] uppercase font-bold text-brand-text/50 tracking-widest flex justify-between mb-3">
-              <span>Niveau d'Énergie en fin de séance</span>
-              <span className="text-sm font-bold text-brand-text">{energy}<span className="text-brand-text/30 font-normal">/10</span></span>
-            </label>
-            <div className="flex items-center gap-1.5 h-12">
-              {Array.from({ length: 10 }).map((_, i) => (
-                <motion.button
-                  whileTap={{ scale: 0.8 }}
-                  key={i}
-                  onClick={() => {
-                    setEnergy(i + 1);
-                    haptic.light();
-                  }}
-                  className={`flex-1 h-full rounded-md transition-colors duration-200 ${
-                    i < energy
-                      ? energy >= 8 ? 'bg-brand-accent' : energy >= 5 ? 'bg-brand-text' : 'bg-brand-text/60'
-                      : 'bg-brand-text/10'
-                  }`}
-                  style={{ WebkitTapHighlightColor: 'transparent' }}
-                />
-              ))}
-            </div>
-          </div>
+                <div className="bg-brand-bg border border-brand-border/50 rounded-3xl p-5 shadow-sm mb-6">
+                  <div className="text-center mb-5">
+                    <span className="text-xs font-bold text-brand-accent bg-brand-accent/10 px-3 py-1.5 rounded-lg inline-block">
+                      Objectif du Coach : {currentSet.targetReps ? `${currentSet.targetReps}r` : ''} {currentSet.targetDuration ? `${currentSet.targetDuration}s` : ''} {currentSet.targetWeight ? `+${currentSet.targetWeight}kg` : ''}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col gap-4">
+                    {currentSet.targetReps !== undefined && currentSet.targetReps > 0 && (
+                      <MetricAdjuster
+                        label="Reps"
+                        value={currentSet.reps}
+                        target={currentSet.targetReps}
+                        onChange={(v) => updateCurrentSet({ reps: Math.max(0, v) })}
+                        step={1}
+                      />
+                    )}
+                    {currentSet.targetDuration !== undefined && currentSet.targetDuration > 0 && (
+                      <MetricAdjuster
+                        label="Temps (s)"
+                        value={currentSet.duration}
+                        target={currentSet.targetDuration}
+                        onChange={(v) => updateCurrentSet({ duration: Math.max(0, v) })}
+                        step={1}
+                        hasTimer
+                      />
+                    )}
+                    <MetricAdjuster
+                      label="Lest (kg)"
+                      value={currentSet.weight}
+                      onChange={(v) => updateCurrentSet({ weight: v })}
+                      step={2.5}
+                      format={(v) => v > 0 ? `+${v}` : `${v}`}
+                    />
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* 3. FINISHED VIEW */}
+            {isFinished && (
+              <motion.div
+                key="finished"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="flex flex-col flex-1 items-center justify-center py-6"
+              >
+                <div className="w-20 h-20 bg-green-500/10 text-green-500 rounded-full flex items-center justify-center mb-6">
+                  <Check size={40} strokeWidth={3} />
+                </div>
+                <h3 className="font-serif font-bold text-3xl mb-2 text-center">Séance Terminée</h3>
+                <p className="text-sm text-brand-text/60 text-center mb-10">Bravo, tous les blocs ont été complétés.</p>
+
+                <div className="w-full bg-brand-bg border border-brand-border/50 rounded-3xl p-5 shadow-sm">
+                  <label className="text-[10px] uppercase font-bold text-brand-text/50 tracking-widest flex justify-between mb-4">
+                    <span>Niveau d'Énergie Final</span>
+                    <span className="text-sm font-bold text-brand-text">{energy}<span className="text-brand-text/30 font-normal">/10</span></span>
+                  </label>
+                  <div className="flex items-center gap-1.5 h-14">
+                    {Array.from({ length: 10 }).map((_, i) => (
+                      <motion.button
+                        whileTap={{ scale: 0.8 }}
+                        key={i}
+                        onClick={() => {
+                          setEnergy(i + 1);
+                          haptic.light();
+                        }}
+                        className={`flex-1 h-full rounded-md transition-colors duration-200 ${
+                          i < energy
+                            ? energy >= 8 ? 'bg-brand-accent' : energy >= 5 ? 'bg-brand-text' : 'bg-brand-text/60'
+                            : 'bg-brand-text/10'
+                        }`}
+                        style={{ WebkitTapHighlightColor: 'transparent' }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+          </AnimatePresence>
         </div>
 
         {/* Footer CTA */}
         <div className="px-5 py-4 border-t border-brand-border/50 bg-brand-bg/95 backdrop-blur-md shrink-0 pb-safe">
-          <motion.button
-            whileTap={{ scale: saved ? 1 : 0.98 }}
-            onClick={handleSave}
-            disabled={progress === 0 || saved}
-            className={`w-full font-bold py-4 rounded-2xl uppercase tracking-widest text-sm transition-all duration-300 flex items-center justify-center gap-2 ${
-              saved 
-                ? 'bg-green-500 text-white shadow-[0_4px_20px_rgba(34,197,94,0.4)]' 
-                : 'bg-brand-accent text-[#F0EBE2] shadow-[0_4px_20px_rgba(204,70,12,0.3)] disabled:opacity-40 disabled:shadow-none disabled:cursor-not-allowed'
-            }`}
-          >
-            {saved ? (
-              <><Check size={20} strokeWidth={3} /> Enregistré</>
-            ) : (
-              'Valider la Séance'
-            )}
-          </motion.button>
+          {isResting ? (
+            <motion.button
+              whileTap={{ scale: 0.98 }}
+              onClick={handleSkipRest}
+              className="w-full font-bold py-4 rounded-2xl uppercase tracking-widest text-sm transition-all duration-300 bg-brand-border/30 text-brand-text hover:bg-brand-border flex items-center justify-center gap-2"
+            >
+              Passer le repos <Play size={16} />
+            </motion.button>
+          ) : !isFinished ? (
+            <motion.button
+              whileTap={{ scale: 0.98 }}
+              onClick={handleCompleteSet}
+              className="w-full font-bold py-4 rounded-2xl uppercase tracking-widest text-sm transition-all duration-300 bg-brand-text text-brand-bg shadow-md flex items-center justify-center gap-2"
+            >
+              <Check size={18} /> Valider la série
+            </motion.button>
+          ) : (
+            <motion.button
+              whileTap={{ scale: saved ? 1 : 0.98 }}
+              onClick={handleSave}
+              disabled={saved}
+              className={`w-full font-bold py-4 rounded-2xl uppercase tracking-widest text-sm transition-all duration-300 flex items-center justify-center gap-2 ${
+                saved 
+                  ? 'bg-green-500 text-white shadow-[0_4px_20px_rgba(34,197,94,0.4)]' 
+                  : 'bg-brand-accent text-[#F0EBE2] shadow-[0_4px_20px_rgba(204,70,12,0.3)] disabled:opacity-40'
+              }`}
+            >
+              {saved ? (
+                <><Check size={20} strokeWidth={3} /> Enregistré</>
+              ) : (
+                'Sauvegarder et Quitter'
+              )}
+            </motion.button>
+          )}
         </div>
       </motion.div>
     </div>
@@ -241,7 +347,7 @@ function MetricAdjuster({ label, value, target, onChange, step, format, hasTimer
   const isComplete = target !== undefined && value >= target && target > 0;
 
   return (
-    <div className={`flex items-center justify-between p-2 rounded-2xl border transition-colors ${isComplete ? 'bg-green-500/10 border-green-500/30' : 'bg-brand-text/5 border-brand-border/30'}`}>
+    <div className={`flex items-center justify-between p-3 rounded-2xl border transition-colors ${isComplete ? 'bg-green-500/10 border-green-500/30' : 'bg-brand-text/5 border-brand-border/30'}`}>
       <div className="flex items-center gap-2 pl-2">
         <span className="text-xs font-bold w-20 text-brand-text/80">{label}</span>
         {hasTimer && (
@@ -260,7 +366,7 @@ function MetricAdjuster({ label, value, target, onChange, step, format, hasTimer
             onChange(value - step);
             haptic.light();
           }}
-          className="w-10 h-10 flex items-center justify-center rounded-xl bg-brand-bg border border-brand-border/50 text-xl font-medium shadow-sm"
+          className="w-12 h-12 flex items-center justify-center rounded-xl bg-brand-bg border border-brand-border/50 text-2xl font-medium shadow-sm"
         >
           -
         </motion.button>
@@ -268,7 +374,7 @@ function MetricAdjuster({ label, value, target, onChange, step, format, hasTimer
           key={value}
           initial={{ y: -5, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          className={`w-12 text-center font-bold tabular-nums text-xl ${isComplete ? 'text-green-500' : 'text-brand-text'}`}
+          className={`w-14 text-center font-bold tabular-nums text-2xl tracking-tighter ${isComplete ? 'text-green-500' : 'text-brand-text'}`}
         >
           {format ? format(value) : value}
         </motion.span>
@@ -280,7 +386,7 @@ function MetricAdjuster({ label, value, target, onChange, step, format, hasTimer
             haptic.light();
             if (target && nextValue === target) haptic.success();
           }}
-          className="w-10 h-10 flex items-center justify-center rounded-xl bg-brand-bg border border-brand-border/50 text-xl font-medium shadow-sm"
+          className="w-12 h-12 flex items-center justify-center rounded-xl bg-brand-bg border border-brand-border/50 text-2xl font-medium shadow-sm"
         >
           +
         </motion.button>

@@ -35,7 +35,7 @@ function parseLegacyPerformance(perf: string): number {
   return 0;
 }
 
-function getBestPerformance(
+export function getBestPerformance(
   logs: TrainingLog[],
   movement: string,
   mechanic: string,

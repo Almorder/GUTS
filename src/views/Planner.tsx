@@ -29,14 +29,16 @@ export default function Planner() {
 
   const handleGenerate = () => {
     if (selectedDays.length === 0) return;
-    const newProg = generateProgram(selectedDays, hour, cycle);
+    const logs = db.getLogs();
+    const newProg = generateProgram(selectedDays, hour, cycle, logs);
     setDraft(newProg); // Show draft for editing before saving
   };
 
   const handleAutoGenerate = () => {
     const optimalDays = ['Lundi', 'Mercredi', 'Vendredi'];
     setSelectedDays(optimalDays);
-    const newProg = generateProgram(optimalDays, '18:00', cycle);
+    const logs = db.getLogs();
+    const newProg = generateProgram(optimalDays, '18:00', cycle, logs);
     setHour('18:00');
     setDraft(newProg);
   };

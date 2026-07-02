@@ -1,77 +1,132 @@
-import type { TrainingProgram, CycleType, SubSet } from './db';
-
-interface SessionTemplate {
-  focusStrs: string[];
-  sets: SubSet[];
-}
-
-const FOCUS_MAPPING: Record<CycleType, SessionTemplate[]> = {
-  'Force': [
-    {
-      focusStrs: ['Front Lever Max', 'Tractions Lourdes'],
-      sets: [
-        { movement: 'Front Lever', mechanic: 'Hold', level: 'Full', duration: 5 },
-        { movement: 'Tractions', mechanic: 'Pull', level: 'Full', reps: 3, weight: 20 },
-        { movement: 'Renforcement', mechanic: 'Hold', level: 'Full', duration: 30 }
-      ]
-    },
-    {
-      focusStrs: ['Planche', 'Dips Lourds'],
-      sets: [
-        { movement: 'Planche', mechanic: 'Hold', level: 'Tuck', duration: 10 },
-        { movement: 'Dips', mechanic: 'Pull', level: 'Full', reps: 5, weight: 30 }
-      ]
-    },
-    {
-      focusStrs: ['Handstand', 'L-sit'],
-      sets: [
-        { movement: 'Handstand', mechanic: 'Hold', level: 'Full', duration: 30 },
-        { movement: 'L-sit', mechanic: 'Hold', level: 'Full', duration: 15 }
-      ]
-    }
-  ],
-  'Volume': [
-    {
-      focusStrs: ['Front Lever (Reps)', 'Tractions Volume'],
-      sets: [
-        { movement: 'Front Lever', mechanic: 'Pull', level: 'Adv Tuck', reps: 5 },
-        { movement: 'Tractions', mechanic: 'Pull', level: 'Full', reps: 15 }
-      ]
-    },
-    {
-      focusStrs: ['Dips Volume', 'Renforcement'],
-      sets: [
-        { movement: 'Dips', mechanic: 'Pull', level: 'Full', reps: 20 },
-        { movement: 'Renforcement', mechanic: 'Hold', level: 'Full', reps: 15 }
-      ]
-    }
-  ],
-  'Décharge': [
-    {
-      focusStrs: ['Mobility', 'Handstand Technique'],
-      sets: [
-        { movement: 'Handstand', mechanic: 'Hold', level: 'Full', duration: 15 },
-        { movement: 'L-sit', mechanic: 'Hold', level: 'Full', duration: 10 }
-      ]
-    }
-  ]
-};
+import type { TrainingProgram, CycleType, SubSet, TrainingLog } from './db';
+import { getBestPerformance } from './progression';
 
 export function generateProgram(
   availableDays: string[], 
   availableHours: string, 
-  targetCycle: CycleType
+  targetCycle: CycleType,
+  logs: TrainingLog[]
 ): Omit<TrainingProgram, 'id' | 'created_at'> {
   
-  const pool = FOCUS_MAPPING[targetCycle];
+  // Helpers to get PRs
+  const getPR = (mov: string, mech: string, unit: 's'|'reps') => Math.max(1, getBestPerformance(logs, mov, mech, unit));
+
+  // Ratios
+  const isForce = targetCycle === 'Force';
+  const isVolume = targetCycle === 'Volume';
+  
+  const intensity = isForce ? 0.85 : isVolume ? 0.70 : 0.50;
+  const restMain = isForce ? 180 : isVolume ? 120 : 90;
+  const restSec = isForce ? 150 : isVolume ? 90 : 60;
+  
+  const setsMain = isForce ? 5 : isVolume ? 4 : 3;
+  const setsSec = isForce ? 4 : isVolume ? 4 : 3;
+
+  // Day 1 Template: Front Lever & Pullups
+  const buildDay1 = (): SubSet[] => {
+    const prFL = getPR('Front Lever', 'Hold', 's');
+    const prPull = getPR('Tractions', 'Pull', 'reps');
+    
+    const sets: SubSet[] = [];
+    
+    // Warmup
+    sets.push({ movement: 'Accessoire', mechanic: 'Raise', level: 'Tuck', reps: 15, targetRest: 60 });
+    sets.push({ movement: 'Accessoire', mechanic: 'Raise', level: 'Tuck', reps: 15, targetRest: 60 });
+    
+    // Main Focus (Front Lever)
+    for(let i=0; i<setsMain; i++) {
+      sets.push({
+        movement: 'Front Lever', mechanic: 'Hold', level: 'Full',
+        duration: 0, targetDuration: Math.max(2, Math.round(prFL * intensity)),
+        targetRest: restMain
+      });
+    }
+
+    // Secondary Focus (Pullups)
+    for(let i=0; i<setsSec; i++) {
+      sets.push({
+        movement: 'Tractions', mechanic: 'Pull', level: 'Full',
+        reps: 0, targetReps: Math.max(3, Math.round(prPull * intensity)),
+        targetRest: restSec
+      });
+    }
+
+    // Accessories SuperSet (Core)
+    for(let i=0; i<3; i++) {
+      sets.push({ movement: 'L-sit', mechanic: 'Hold', level: 'Tuck', duration: 0, targetDuration: 15, isSuperSet: true });
+      sets.push({ movement: 'Renforcement', mechanic: 'Hold', level: 'Tuck', duration: 0, targetDuration: 30, targetRest: 90 });
+    }
+
+    return sets;
+  };
+
+  // Day 2 Template: Planche & Dips
+  const buildDay2 = (): SubSet[] => {
+    const prPlanche = getPR('Planche', 'Hold', 's');
+    const prDips = getPR('Dips', 'Pull', 'reps');
+    
+    const sets: SubSet[] = [];
+    
+    sets.push({ movement: 'Accessoire', mechanic: 'Hold', level: 'Tuck', duration: 0, targetDuration: 20, targetRest: 60 });
+    
+    for(let i=0; i<setsMain; i++) {
+      sets.push({
+        movement: 'Planche', mechanic: 'Hold', level: 'Tuck',
+        duration: 0, targetDuration: Math.max(2, Math.round(prPlanche * intensity)),
+        targetRest: restMain
+      });
+    }
+
+    for(let i=0; i<setsSec; i++) {
+      sets.push({
+        movement: 'Dips', mechanic: 'Pull', level: 'Full',
+        reps: 0, targetReps: Math.max(5, Math.round(prDips * intensity)),
+        targetRest: restSec
+      });
+    }
+
+    for(let i=0; i<3; i++) {
+      sets.push({ movement: 'Handstand', mechanic: 'Hold', level: 'Tuck', duration: 0, targetDuration: 15, targetRest: 90 });
+    }
+
+    return sets;
+  };
+
+  // Day 3 Template: Handstand & Mix
+  const buildDay3 = (): SubSet[] => {
+    const prHS = getPR('Handstand', 'Hold', 's');
+    
+    const sets: SubSet[] = [];
+    
+    for(let i=0; i<setsMain; i++) {
+      sets.push({
+        movement: 'Handstand', mechanic: 'Hold', level: 'Full',
+        duration: 0, targetDuration: Math.max(5, Math.round(prHS * intensity)),
+        targetRest: restMain
+      });
+    }
+
+    for(let i=0; i<setsSec; i++) {
+      sets.push({ movement: 'Tractions', mechanic: 'Pull', level: 'Full', reps: 0, targetReps: 8, isSuperSet: true });
+      sets.push({ movement: 'Dips', mechanic: 'Pull', level: 'Full', reps: 0, targetReps: 10, targetRest: 120 });
+    }
+
+    return sets;
+  };
+
+  const templates = [
+    { focus: ['Front Lever', 'Pullups'], builder: buildDay1 },
+    { focus: ['Planche', 'Dips'], builder: buildDay2 },
+    { focus: ['Handstand', 'Mix'], builder: buildDay3 }
+  ];
 
   const schedule = availableDays.map((day, index) => {
-    const template = pool[index % pool.length];
+    const t = templates[index % templates.length];
     return {
       day,
       hour: availableHours,
-      focus: [...template.focusStrs],
-      structured_focus: JSON.parse(JSON.stringify(template.sets)) // Deep copy
+      focus: t.focus,
+      structured_focus: t.builder()
     };
   });
 

@@ -7,9 +7,14 @@ export interface SubSet {
   movement: Movement;
   mechanic: Mechanic;
   level: Level;
-  reps?: number;
-  duration?: number; // seconds
-  weight?: number; // kg
+  reps?: number; // Repetitions actually done
+  duration?: number; // Time in seconds actually done
+  weight?: number; // Added weight in kg (can be negative for assistance)
+  targetReps?: number; // Predicted coach target
+  targetDuration?: number; // Predicted coach target
+  targetWeight?: number; // Predicted coach target
+  targetRest?: number; // Recommended rest in seconds after this set
+  isSuperSet?: boolean; // If true, immediately jump to the next set without rest
 }
 
 export interface TrainingLog {
