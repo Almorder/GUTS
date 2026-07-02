@@ -1,4 +1,5 @@
-import { Zap } from 'lucide-react';
+import { Plus } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 interface MainActionProps {
   onClick: () => void;
@@ -6,14 +7,16 @@ interface MainActionProps {
 
 export default function MainAction({ onClick }: MainActionProps) {
   return (
-    <div className="fixed bottom-6 left-0 w-full px-5 z-40 flex justify-center">
-      <button
+    <div className="fixed bottom-6 right-6 z-40">
+      <motion.button
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.9 }}
         onClick={onClick}
-        className="w-full max-w-md bg-brand-accent text-brand-bg font-bold py-4 rounded-xl shadow-[0_4px_24px_rgba(204,70,12,0.3)] active:scale-[0.97] active:shadow-[0_2px_12px_rgba(204,70,12,0.2)] transition-all duration-150 flex items-center justify-center gap-3 uppercase tracking-widest text-sm"
+        className="bg-brand-accent text-[#F0EBE2] p-4 rounded-2xl shadow-[0_8px_32px_rgba(204,70,12,0.4)] flex items-center justify-center border border-brand-accent/20 outline-none"
+        style={{ WebkitTapHighlightColor: 'transparent' }}
       >
-        <Zap size={18} fill="currentColor" />
-        Log New Top Set
-      </button>
+        <Plus size={28} strokeWidth={2.5} />
+      </motion.button>
     </div>
   );
 }

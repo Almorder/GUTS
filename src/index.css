@@ -3,8 +3,22 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --brand-bg: 240 235 226; /* #F0EBE2 */
+    --brand-text: 5 4 3; /* #050403 */
+    --brand-border: 200 196 188; /* #C8C4BC */
+    --brand-accent: 204 70 12; /* #CC460C */
+  }
+
+  html.dark {
+    --brand-bg: 10 10 10; /* #0A0A0A */
+    --brand-text: 232 228 220; /* #E8E4DC */
+    --brand-border: 42 39 36; /* #2A2724 */
+    --brand-accent: 255 87 34; /* #FF5722 */
+  }
+
   body {
-    @apply bg-brand-bg text-brand-text font-sans antialiased selection:bg-brand-accent/20;
+    @apply bg-brand-bg text-brand-text font-sans antialiased selection:bg-brand-accent/20 transition-colors duration-300;
     margin: 0;
     min-height: 100vh;
   }

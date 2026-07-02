@@ -1,5 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 export default {
+  darkMode: 'class',
   content: [
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
@@ -8,10 +9,10 @@ export default {
     extend: {
       colors: {
         brand: {
-          bg: '#F0EBE2',
-          text: '#050403',
-          border: '#C8C4BC',
-          accent: '#CC460C',
+          bg: 'rgb(var(--brand-bg) / <alpha-value>)',
+          text: 'rgb(var(--brand-text) / <alpha-value>)',
+          border: 'rgb(var(--brand-border) / <alpha-value>)',
+          accent: 'rgb(var(--brand-accent) / <alpha-value>)',
         }
       },
       fontFamily: {

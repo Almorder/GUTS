@@ -1,33 +1,37 @@
-import type { TrainingLog, TrainingProgram } from './db';
+import type { TrainingLog, TrainingProgram, CycleType } from './db';
 
-const FOCUS_AREAS = [
-  ['Front Lever', 'Pull-ups'],
-  ['Handstand', 'Planche'],
-  ['Core', 'Mobility'],
-  ['Endurance', 'Accessoire']
-];
+const FOCUS_MAPPING: Record<CycleType, string[][]> = {
+  'Force': [
+    ['Front Lever Hold (Max)', 'Planche Lean (Max)'],
+    ['Weighted Pull-ups', 'Core Force'],
+    ['Handstand Push-ups', 'Front Lever Negatives'],
+    ['Planche Tuck Hold', 'Heavy Accessoire']
+  ],
+  'Volume': [
+    ['Front Lever (Submax) + Accessoire', 'Endurance'],
+    ['Planche (Submax) + Core', 'Volume Push'],
+    ['Handstand Technique', 'Volume Pull'],
+    ['Full Body Basics', 'Endurance Core']
+  ],
+  'Décharge': [
+    ['Mobility & Stretching', 'Light Technique'],
+    ['Active Recovery', 'Joint Prep'],
+    ['Light Handstand', 'Core Flow'],
+    ['Yoga / Flexibility', 'Prehab']
+  ]
+};
 
 export function generateProgram(
   availableDays: string[], 
   availableHours: string, 
-  logs: TrainingLog[]
+  logs: TrainingLog[],
+  targetCycle: CycleType
 ): Omit<TrainingProgram, 'id' | 'created_at'> {
-  // Check average energy over last 7 days
-  const recentLogs = [...logs]
-    .filter(l => new Date(l.created_at).getTime() > Date.now() - 7 * 24 * 60 * 60 * 1000);
   
-  const avgEnergy = recentLogs.length > 0 
-    ? recentLogs.reduce((acc, l) => acc + l.energy_level, 0) / recentLogs.length
-    : 7; // Default to 7 if no recent logs
-
-  const isDeload = avgEnergy < 5;
+  const pool = FOCUS_MAPPING[targetCycle];
 
   const schedule = availableDays.map((day, index) => {
-    // Round-robin focus areas based on index
-    const focus = isDeload 
-      ? ['Mobility', 'Light Technique'] 
-      : FOCUS_AREAS[index % FOCUS_AREAS.length];
-
+    const focus = pool[index % pool.length];
     return {
       day,
       hour: availableHours,

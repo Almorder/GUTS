@@ -38,7 +38,7 @@ function PageWrapper({ children }: { children: React.ReactNode }) {
       animate="animate"
       exit="exit"
       transition={{ duration: 0.3, ease: 'easeOut' }}
-      className="pt-24 pb-32"
+      className="pt-36 pb-24 px-4"
     >
       {children}
     </motion.div>
@@ -67,7 +67,7 @@ function App() {
       <div className="flex-1 overflow-y-auto">
         <AnimatePresence mode="wait">
           <Routes location={location} key={location.pathname}>
-            <Route path="/" element={<PageWrapper><Home logs={logs} /></PageWrapper>} />
+            <Route path="/" element={<PageWrapper><Home logs={logs} onRefresh={refreshLogs} /></PageWrapper>} />
             <Route path="/roadmap" element={<PageWrapper><Roadmap openLogger={(c) => setModalConfig({ ...c, isOpen: true })} /></PageWrapper>} />
             <Route path="/stats" element={<PageWrapper><Stats /></PageWrapper>} />
             <Route path="/planner" element={<PageWrapper><Planner /></PageWrapper>} />
