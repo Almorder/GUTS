@@ -23,7 +23,7 @@ export const db = {
     const data = localStorage.getItem(STORAGE_KEY);
     return data ? JSON.parse(data) : [];
   },
-  
+
   addLog: (log: Omit<TrainingLog, 'id' | 'created_at'>): TrainingLog => {
     const newLog: TrainingLog = {
       ...log,
@@ -36,6 +36,11 @@ export const db = {
     return newLog;
   },
 
+  deleteLog: (id: string): void => {
+    const logs = db.getLogs().filter(l => l.id !== id);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(logs));
+  },
+
   getChangelog: (): string => {
     return localStorage.getItem(CHANGELOG_KEY) || '';
   },
@@ -46,28 +51,25 @@ export const db = {
 
   exportToCSV: (): void => {
     const logs = db.getLogs();
-    if (logs.length === 0) {
-      alert("Aucune donnée à exporter.");
-      return;
-    }
+    if (logs.length === 0) return;
 
     const headers = ['id', 'created_at', 'cycle_type', 'movement', 'mechanic', 'level', 'top_set_performance', 'energy_level', 'notes'];
-    
+
     const rows = logs.map(log => {
       return headers.map(header => {
-        let val = (log as any)[header]?.toString() || '';
+        let val = ((log as unknown) as Record<string, unknown>)[header]?.toString() || '';
         val = val.replace(/"/g, '""');
         return `"${val}"`;
       }).join(',');
     });
 
     const csvContent = [headers.join(','), ...rows].join('\n');
-    
+
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', `NolanArc_Export_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute('download', `GUTS_Export_${new Date().toISOString().split('T')[0]}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
