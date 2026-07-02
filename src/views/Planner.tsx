@@ -5,6 +5,7 @@ import { generateProgram } from '../lib/scheduler';
 import { Calendar as CalIcon, Clock, Sparkles, Check, Edit2, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
+import ActiveSessionModal from '../components/ActiveSessionModal';
 
 const DAYS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
 const CYCLES: CycleType[] = ['Force', 'Volume', 'Décharge'];
@@ -16,6 +17,7 @@ export default function Planner() {
   const [cycle, setCycle] = useState<CycleType>('Force');
   
   const [draft, setDraft] = useState<Omit<TrainingProgram, 'id' | 'created_at'> | null>(null);
+  const [activeSession, setActiveSession] = useState<any>(null);
 
   useEffect(() => {
     setPrograms(db.getPrograms().sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
@@ -219,17 +221,26 @@ export default function Planner() {
                   </div>
                   <div className="flex flex-col gap-3">
                     {prog.schedule.map((session, i) => (
-                      <div key={i} className={`flex items-start justify-between p-3 rounded-xl border ${index === 0 ? 'border-brand-text/20 bg-brand-text/5' : 'border-brand-border/30 bg-brand-text/5'}`}>
+                      <div 
+                        key={i} 
+                        onClick={() => index === 0 && setActiveSession({ session, cycleType: cycle })} // Launch session only for current program
+                        className={`flex items-start justify-between p-3 rounded-xl border transition-all ${index === 0 ? 'border-brand-accent/30 bg-brand-accent/5 hover:bg-brand-accent/10 cursor-pointer shadow-sm' : 'border-brand-border/30 bg-brand-text/5'}`}
+                      >
                         <div>
                           <span className="font-bold text-sm block text-brand-text">{session.day}</span>
                           <div className="flex items-center gap-1 text-[10px] text-brand-text/50 mt-1 uppercase tracking-widest font-medium">
                             <Clock size={10} /> {session.hour}
                           </div>
                         </div>
-                        <div className="text-right flex flex-col gap-1">
+                        <div className="text-right flex flex-col gap-1 items-end">
                           {session.focus.map((f, j) => (
                             <span key={j} className="block text-xs font-bold text-brand-text bg-brand-bg px-2 py-0.5 rounded-md border border-brand-border/30">{f}</span>
                           ))}
+                          {index === 0 && (
+                            <span className="text-[9px] uppercase tracking-widest font-bold text-brand-accent mt-1 flex items-center gap-1">
+                              ▶ Démarrer la session
+                            </span>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -240,6 +251,17 @@ export default function Planner() {
           )}
         </div>
       </div>
+
+      <AnimatePresence>
+        {activeSession && (
+          <ActiveSessionModal
+            session={activeSession.session}
+            cycleType={activeSession.cycleType}
+            onClose={() => setActiveSession(null)}
+            onSave={() => setActiveSession(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

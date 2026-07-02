@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { TrainingLog } from '../lib/db';
 import { db } from '../lib/db';
 import { buildSkills } from '../lib/progression';
@@ -5,7 +6,8 @@ import HeroStats from '../components/HeroStats';
 import SkillCard from '../components/SkillCard';
 import Dashboard from '../components/Dashboard';
 import { Target } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import QuickUpdateModal from '../components/QuickUpdateModal';
 
 interface HomeProps {
   logs: TrainingLog[];
@@ -13,6 +15,8 @@ interface HomeProps {
 }
 
 export default function Home({ logs, onRefresh }: HomeProps) {
+  const [selectedSkill, setSelectedSkill] = useState<any>(null);
+
   const skills = buildSkills(logs);
   const examAvailable = skills.some(s => s.isExamAvailable);
 
@@ -62,7 +66,7 @@ export default function Home({ logs, onRefresh }: HomeProps) {
 
         <div className="flex flex-col gap-4">
           {skills.map(skill => (
-            <SkillCard key={skill.id} skill={skill} />
+            <SkillCard key={skill.id} skill={skill} onClick={() => setSelectedSkill(skill)} />
           ))}
         </div>
 
@@ -74,6 +78,19 @@ export default function Home({ logs, onRefresh }: HomeProps) {
 
         <Dashboard logs={logs} onDelete={handleDeleteLog} />
       </div>
+
+      <AnimatePresence>
+        {selectedSkill && (
+          <QuickUpdateModal
+            skill={selectedSkill}
+            onClose={() => setSelectedSkill(null)}
+            onSave={() => {
+              setSelectedSkill(null);
+              if (onRefresh) onRefresh();
+            }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

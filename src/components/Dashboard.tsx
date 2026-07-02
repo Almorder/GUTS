@@ -119,6 +119,10 @@ function LogCard({ log, onDelete }: { log: TrainingLog, onDelete: () => void }) 
     'Front Lever': '🔒',
     'Planche': '🔥',
     'Handstand': '🤸',
+    'Tractions': '💪',
+    'Dips': '🔱',
+    'L-sit': '📐',
+    'Renforcement': '🏋️',
     'Accessoire': '🔧',
   };
 

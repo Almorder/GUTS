@@ -1,5 +1,5 @@
 export type CycleType = 'Force' | 'Volume' | 'Décharge';
-export type Movement = 'Front Lever' | 'Planche' | 'Handstand' | 'Accessoire';
+export type Movement = 'Front Lever' | 'Planche' | 'Handstand' | 'Tractions' | 'Dips' | 'L-sit' | 'Renforcement' | 'Accessoire';
 export type Mechanic = 'Hold' | 'Pull' | 'Negative' | 'Raise';
 export type Level = 'Tuck' | 'Adv Tuck' | 'Half Lay' | 'Full';
 
@@ -39,6 +39,7 @@ export interface TrainingProgram {
     day: string; // "Lundi", "Mardi"...
     hour: string;
     focus: string[]; // ex: ["Front Lever", "Accessoire"]
+    structured_focus?: SubSet[]; // V6 Interactive Sets
   }[];
 }
 

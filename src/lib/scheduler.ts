@@ -1,23 +1,59 @@
-import type { TrainingLog, TrainingProgram, CycleType } from './db';
+import type { TrainingLog, TrainingProgram, CycleType, SubSet } from './db';
 
-const FOCUS_MAPPING: Record<CycleType, string[][]> = {
+interface SessionTemplate {
+  focusStrs: string[];
+  sets: SubSet[];
+}
+
+const FOCUS_MAPPING: Record<CycleType, SessionTemplate[]> = {
   'Force': [
-    ['Front Lever Hold (Max)', 'Planche Lean (Max)'],
-    ['Weighted Pull-ups', 'Core Force'],
-    ['Handstand Push-ups', 'Front Lever Negatives'],
-    ['Planche Tuck Hold', 'Heavy Accessoire']
+    {
+      focusStrs: ['Front Lever Max', 'Tractions Lourdes'],
+      sets: [
+        { movement: 'Front Lever', mechanic: 'Hold', level: 'Full', duration: 5 },
+        { movement: 'Tractions', mechanic: 'Pull', level: 'Full', reps: 3, weight: 20 },
+        { movement: 'Renforcement', mechanic: 'Hold', level: 'Full', duration: 30 }
+      ]
+    },
+    {
+      focusStrs: ['Planche', 'Dips Lourds'],
+      sets: [
+        { movement: 'Planche', mechanic: 'Hold', level: 'Tuck', duration: 10 },
+        { movement: 'Dips', mechanic: 'Pull', level: 'Full', reps: 5, weight: 30 }
+      ]
+    },
+    {
+      focusStrs: ['Handstand', 'L-sit'],
+      sets: [
+        { movement: 'Handstand', mechanic: 'Hold', level: 'Full', duration: 30 },
+        { movement: 'L-sit', mechanic: 'Hold', level: 'Full', duration: 15 }
+      ]
+    }
   ],
   'Volume': [
-    ['Front Lever (Submax) + Accessoire', 'Endurance'],
-    ['Planche (Submax) + Core', 'Volume Push'],
-    ['Handstand Technique', 'Volume Pull'],
-    ['Full Body Basics', 'Endurance Core']
+    {
+      focusStrs: ['Front Lever (Reps)', 'Tractions Volume'],
+      sets: [
+        { movement: 'Front Lever', mechanic: 'Pull', level: 'Adv Tuck', reps: 5 },
+        { movement: 'Tractions', mechanic: 'Pull', level: 'Full', reps: 15 }
+      ]
+    },
+    {
+      focusStrs: ['Dips Volume', 'Renforcement'],
+      sets: [
+        { movement: 'Dips', mechanic: 'Pull', level: 'Full', reps: 20 },
+        { movement: 'Renforcement', mechanic: 'Hold', level: 'Full', reps: 15 }
+      ]
+    }
   ],
   'Décharge': [
-    ['Mobility & Stretching', 'Light Technique'],
-    ['Active Recovery', 'Joint Prep'],
-    ['Light Handstand', 'Core Flow'],
-    ['Yoga / Flexibility', 'Prehab']
+    {
+      focusStrs: ['Mobility', 'Handstand Technique'],
+      sets: [
+        { movement: 'Handstand', mechanic: 'Hold', level: 'Full', duration: 15 },
+        { movement: 'L-sit', mechanic: 'Hold', level: 'Full', duration: 10 }
+      ]
+    }
   ]
 };
 
@@ -31,11 +67,12 @@ export function generateProgram(
   const pool = FOCUS_MAPPING[targetCycle];
 
   const schedule = availableDays.map((day, index) => {
-    const focus = pool[index % pool.length];
+    const template = pool[index % pool.length];
     return {
       day,
       hour: availableHours,
-      focus
+      focus: [...template.focusStrs],
+      structured_focus: JSON.parse(JSON.stringify(template.sets)) // Deep copy
     };
   });
 

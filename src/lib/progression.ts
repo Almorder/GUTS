@@ -171,11 +171,23 @@ export function buildSkills(logs: TrainingLog[]): Skill[] {
       { label: 'Solid', target: 8 },
       { label: 'Adv Tuck', target: 10 },
     ]),
-    createSkill('pullups', 'Pull-ups', '💪', 'Strict Pronation', 'Accessoire', 'Pull', 'reps', 'Full', [
-      { label: 'Current', target: 17 },
-      { label: 'Strong', target: 20 },
-      { label: 'Historic', target: 24 },
-      { label: 'Beyond', target: 28 },
+    createSkill('pullups', 'Tractions', '💪', 'Pull-ups (Reps)', 'Tractions', 'Pull', 'reps', 'Full', [
+      { label: 'Current', target: 10 },
+      { label: 'Strong', target: 15 },
+      { label: 'Elite', target: 20 },
+      { label: 'Master', target: 25 },
+    ]),
+    createSkill('dips', 'Dips', '🔱', 'Parallel Bars (Reps)', 'Dips', 'Pull', 'reps', 'Full', [
+      { label: 'Current', target: 15 },
+      { label: 'Strong', target: 25 },
+      { label: 'Elite', target: 35 },
+      { label: 'Master', target: 45 },
+    ]),
+    createSkill('lsit', 'L-sit', '📐', 'Hold', 'L-sit', 'Hold', 's', 'Full', [
+      { label: 'Base', target: 10 },
+      { label: 'Solid', target: 20 },
+      { label: 'Clean', target: 30 },
+      { label: 'Master', target: 45 },
     ])
   ];
 }

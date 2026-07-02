@@ -3,11 +3,13 @@ import { db } from '../lib/db';
 import type { TrainingLog, Movement, Mechanic } from '../lib/db';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { format, subDays, startOfWeek, addDays } from 'date-fns';
-import { motion } from 'framer-motion';
-import { Trophy, Activity, Flame, Medal } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Trophy, Activity, Flame, Medal, X as CloseIcon } from 'lucide-react';
+import Dashboard from '../components/Dashboard';
 
 export default function Stats() {
   const [logs, setLogs] = useState<TrainingLog[]>([]);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
   useEffect(() => {
     setLogs(db.getLogs());
@@ -104,10 +106,13 @@ export default function Stats() {
           </div>
           <div className="flex flex-wrap gap-1.5 justify-end">
             {heatmapData.map((d, i) => (
-              <div 
+              <button 
                 key={i} 
-                className={`w-3.5 h-3.5 rounded-sm transition-colors ${
-                  d.count === 0 ? 'bg-brand-border/20' : 
+                onClick={() => setSelectedDate(d.date)}
+                className={`w-3.5 h-3.5 rounded-sm transition-all hover:scale-125 focus:outline-none ${
+                  selectedDate?.toDateString() === d.date.toDateString() ? 'ring-2 ring-brand-text ring-offset-1 ring-offset-brand-bg' : ''
+                } ${
+                  d.count === 0 ? 'bg-brand-border/20 hover:bg-brand-border/40' : 
                   d.count === 1 ? 'bg-brand-accent/40' : 
                   d.count === 2 ? 'bg-brand-accent/70' : 
                   'bg-brand-accent'
@@ -116,6 +121,33 @@ export default function Stats() {
               />
             ))}
           </div>
+
+          <AnimatePresence>
+            {selectedDate && (
+              <motion.div
+                initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                animate={{ opacity: 1, height: 'auto', marginTop: 24 }}
+                exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                className="overflow-hidden border-t border-brand-border/30 pt-4"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-bold text-sm text-brand-text flex items-center gap-2">
+                    <Activity size={14} className="text-brand-accent" />
+                    Séance du {format(selectedDate, 'dd/MM/yyyy')}
+                  </h3>
+                  <button 
+                    onClick={() => setSelectedDate(null)} 
+                    className="p-1 rounded-md bg-brand-border/20 text-brand-text/50 hover:text-brand-text transition-colors"
+                  >
+                    <CloseIcon size={14} />
+                  </button>
+                </div>
+                <div className="max-h-80 overflow-y-auto custom-scrollbar pr-2">
+                  <Dashboard logs={logs.filter(l => new Date(l.created_at).toDateString() === selectedDate.toDateString())} />
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
 
         {/* Chart 1: Front Lever */}

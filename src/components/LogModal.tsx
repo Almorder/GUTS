@@ -21,7 +21,7 @@ interface LogModalProps {
 }
 
 const CYCLE_TYPES: CycleType[] = ['Force', 'Volume', 'Décharge'];
-const MOVEMENTS: Movement[] = ['Front Lever', 'Planche', 'Handstand', 'Accessoire'];
+const MOVEMENTS: Movement[] = ['Front Lever', 'Planche', 'Handstand', 'Tractions', 'Dips', 'L-sit', 'Renforcement', 'Accessoire'];
 const MECHANICS: Mechanic[] = ['Hold', 'Pull', 'Negative', 'Raise'];
 const LEVELS: Level[] = ['Tuck', 'Adv Tuck', 'Half Lay', 'Full'];
 
