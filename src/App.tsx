@@ -1,15 +1,17 @@
 import { useState, useEffect } from 'react';
+import { Routes, Route } from 'react-router-dom';
 import { db } from './lib/db';
 import type { TrainingLog } from './lib/db';
-import { buildSkills } from './lib/progression';
-import Header from './components/Header';
-import HeroStats from './components/HeroStats';
-import SkillCard from './components/SkillCard';
-import Changelog from './components/Changelog';
-import Dashboard from './components/Dashboard';
+
+import Home from './views/Home';
+import Roadmap from './views/Roadmap';
+import Stats from './views/Stats';
+import Planner from './views/Planner';
+import Settings from './views/Settings';
+
+import NavBar from './components/NavBar';
 import MainAction from './components/MainAction';
 import LogModal from './components/LogModal';
-import ExportUtility from './components/ExportUtility';
 
 function App() {
   const [logs, setLogs] = useState<TrainingLog[]>([]);
@@ -23,52 +25,24 @@ function App() {
     refreshLogs();
   }, []);
 
-  const skills = buildSkills(logs);
-
   return (
-    <div className="max-w-md mx-auto min-h-screen px-5 pb-28 relative flex flex-col">
-      {/* Header */}
-      <Header />
-
-      {/* Hero Stats (Level, XP, Streak) */}
-      <HeroStats logs={logs} />
-
-      {/* Divider */}
-      <div className="flex items-center gap-3 mt-2 mb-4">
-        <div className="flex-1 h-px bg-brand-border" />
-        <span className="text-[9px] uppercase tracking-[0.3em] text-brand-text/30 font-bold">Progression</span>
-        <div className="flex-1 h-px bg-brand-border" />
+    <div className="max-w-md mx-auto min-h-screen relative flex flex-col bg-brand-bg text-brand-text pb-24">
+      {/* Routes */}
+      <div className="flex-1 overflow-y-auto">
+        <Routes>
+          <Route path="/" element={<Home logs={logs} />} />
+          <Route path="/roadmap" element={<Roadmap />} />
+          <Route path="/stats" element={<Stats />} />
+          <Route path="/planner" element={<Planner />} />
+          <Route path="/settings" element={<Settings />} />
+        </Routes>
       </div>
 
-      {/* Skill Cards */}
-      <div className="flex flex-col gap-3">
-        {skills.map(skill => (
-          <SkillCard key={skill.id} skill={skill} />
-        ))}
-      </div>
-
-      {/* Changelog (Collapsible) */}
-      <div className="mt-8">
-        <Changelog />
-      </div>
-
-      {/* Divider */}
-      <div className="flex items-center gap-3 mt-8 mb-4">
-        <div className="flex-1 h-px bg-brand-border" />
-        <span className="text-[9px] uppercase tracking-[0.3em] text-brand-text/30 font-bold">Recent Sets</span>
-        <div className="flex-1 h-px bg-brand-border" />
-      </div>
-
-      {/* Dashboard */}
-      <Dashboard logs={logs} />
-
-      {/* Export */}
-      <div className="mt-8 text-center">
-        <ExportUtility />
-      </div>
-
-      {/* Main CTA */}
+      {/* Main CTA (Global) */}
       <MainAction onClick={() => setIsModalOpen(true)} />
+
+      {/* Bottom Navigation */}
+      <NavBar />
 
       {/* Modal */}
       {isModalOpen && (

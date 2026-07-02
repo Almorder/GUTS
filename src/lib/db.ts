@@ -3,24 +3,52 @@ export type Movement = 'Front Lever' | 'Planche' | 'Handstand' | 'Accessoire';
 export type Mechanic = 'Hold' | 'Pull' | 'Negative' | 'Raise';
 export type Level = 'Tuck' | 'Adv Tuck' | 'Half Lay' | 'Full';
 
+export interface SubSet {
+  movement: Movement;
+  mechanic: Mechanic;
+  level: Level;
+  reps?: number;
+  duration?: number; // seconds
+  weight?: number; // kg
+}
+
 export interface TrainingLog {
   id: string;
   created_at: string;
   cycle_type: CycleType;
-  movement: Movement;
-  mechanic: Mechanic;
-  level: Level;
-  top_set_performance: string;
+  
+  // V2 Legacy (optional now)
+  movement?: Movement;
+  mechanic?: Mechanic;
+  level?: Level;
+  top_set_performance?: string;
+  notes?: string;
+
+  // V3 Features
+  is_exam?: boolean;
+  sets?: SubSet[]; // array for Super Sets
+  tags?: string[];
   energy_level: number;
-  notes: string;
 }
 
-const STORAGE_KEY = 'NolanArc_TrainingLogs';
+export interface TrainingProgram {
+  id: string;
+  created_at: string;
+  week_start: string; // ISO date
+  schedule: {
+    day: string; // "Lundi", "Mardi"...
+    hour: string;
+    focus: string[]; // ex: ["Front Lever", "Accessoire"]
+  }[];
+}
+
+const LOGS_KEY = 'NolanArc_TrainingLogs';
+const PROGRAMS_KEY = 'NolanArc_Programs';
 const CHANGELOG_KEY = 'NolanArc_Changelog';
 
 export const db = {
   getLogs: (): TrainingLog[] => {
-    const data = localStorage.getItem(STORAGE_KEY);
+    const data = localStorage.getItem(LOGS_KEY);
     return data ? JSON.parse(data) : [];
   },
 
@@ -32,13 +60,30 @@ export const db = {
     };
     const logs = db.getLogs();
     logs.push(newLog);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(logs));
+    localStorage.setItem(LOGS_KEY, JSON.stringify(logs));
     return newLog;
   },
 
   deleteLog: (id: string): void => {
     const logs = db.getLogs().filter(l => l.id !== id);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(logs));
+    localStorage.setItem(LOGS_KEY, JSON.stringify(logs));
+  },
+
+  getPrograms: (): TrainingProgram[] => {
+    const data = localStorage.getItem(PROGRAMS_KEY);
+    return data ? JSON.parse(data) : [];
+  },
+
+  addProgram: (prog: Omit<TrainingProgram, 'id' | 'created_at'>): TrainingProgram => {
+    const newProg: TrainingProgram = {
+      ...prog,
+      id: crypto.randomUUID(),
+      created_at: new Date().toISOString(),
+    };
+    const progs = db.getPrograms();
+    progs.push(newProg);
+    localStorage.setItem(PROGRAMS_KEY, JSON.stringify(progs));
+    return newProg;
   },
 
   getChangelog: (): string => {
@@ -53,23 +98,47 @@ export const db = {
     const logs = db.getLogs();
     if (logs.length === 0) return;
 
-    const headers = ['id', 'created_at', 'cycle_type', 'movement', 'mechanic', 'level', 'top_set_performance', 'energy_level', 'notes'];
-
+    // Flatten V3 arrays for CSV
     const rows = logs.map(log => {
-      return headers.map(header => {
-        let val = ((log as unknown) as Record<string, unknown>)[header]?.toString() || '';
-        val = val.replace(/"/g, '""');
-        return `"${val}"`;
-      }).join(',');
+      // For V2 legacy
+      const mov = log.sets && log.sets.length > 0 ? log.sets.map(s => s.movement).join(' + ') : log.movement || '';
+      const mec = log.sets && log.sets.length > 0 ? log.sets.map(s => s.mechanic).join(' + ') : log.mechanic || '';
+      const lvl = log.sets && log.sets.length > 0 ? log.sets.map(s => s.level).join(' + ') : log.level || '';
+      
+      const perf = log.sets && log.sets.length > 0 
+        ? log.sets.map(s => {
+            const parts = [];
+            if (s.reps) parts.push(`${s.reps}r`);
+            if (s.duration) parts.push(`${s.duration}s`);
+            if (s.weight) parts.push(`+${s.weight}kg`);
+            return parts.join(' ');
+          }).join(' + ')
+        : log.top_set_performance || '';
+
+      const tgs = log.tags ? log.tags.join(' | ') : log.notes || '';
+
+      return [
+        log.id,
+        log.created_at,
+        log.cycle_type,
+        log.is_exam ? 'YES' : 'NO',
+        mov,
+        mec,
+        lvl,
+        perf,
+        log.energy_level,
+        tgs
+      ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(',');
     });
 
-    const csvContent = [headers.join(','), ...rows].join('\n');
+    const headers = ['id', 'created_at', 'cycle_type', 'is_exam', 'movement', 'mechanic', 'level', 'performance', 'energy_level', 'tags_notes'].join(',');
+    const csvContent = [headers, ...rows].join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', `GUTS_Export_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute('download', `GUTS_Export_V3_${new Date().toISOString().split('T')[0]}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

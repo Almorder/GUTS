@@ -1,172 +1,182 @@
 import type { TrainingLog } from './db';
 
 // ─────────────────────────────────────────────────────────────
-// Nolan's real milestones from his design document
+// Milestones & Skills
 // ─────────────────────────────────────────────────────────────
 
 export interface Milestone {
   label: string;
   target: number;
-  unit: string;
+  unit: 's' | 'reps';
+  unlocked: boolean; // V3: Is this tier unlocked by passing an exam?
 }
 
 export interface Skill {
   id: string;
   name: string;
-  icon: string; // emoji
+  icon: string;
   subtitle: string;
   current: number;
   milestones: Milestone[];
   movement: string;
   mechanic: string;
   level?: string;
+  isExamAvailable: boolean;
 }
 
-// Parse a performance string to extract a numeric value
-function parsePerformance(perf: string): number {
-  // Match patterns like "3s", "3 sec", "3 seconds", "5s"
+function parseLegacyPerformance(perf: string): number {
+  if (!perf) return 0;
   const secMatch = perf.match(/(\d+\.?\d*)\s*s/i);
   if (secMatch) return parseFloat(secMatch[1]);
-
-  // Match patterns like "2 reps", "5 rep", "3r"
   const repMatch = perf.match(/(\d+\.?\d*)\s*r/i);
   if (repMatch) return parseFloat(repMatch[1]);
-
-  // Match bare numbers
   const numMatch = perf.match(/^(\d+\.?\d*)/);
   if (numMatch) return parseFloat(numMatch[1]);
-
   return 0;
 }
 
-// Get the best performance for a specific skill from logs
-export function getBestPerformance(
+function getBestPerformance(
   logs: TrainingLog[],
   movement: string,
   mechanic: string,
-  level?: string
+  unit: 's' | 'reps',
+  level?: string,
 ): number {
-  const filtered = logs.filter(
-    l =>
-      l.movement === movement &&
-      l.mechanic === mechanic &&
-      (!level || l.level === level)
-  );
+  let best = 0;
 
-  if (filtered.length === 0) return 0;
+  for (const log of logs) {
+    // V3 Support: check in sets array
+    if (log.sets && log.sets.length > 0) {
+      for (const set of log.sets) {
+        if (set.movement === movement && set.mechanic === mechanic && (!level || set.level === level)) {
+          const val = unit === 's' ? (set.duration || 0) : (set.reps || 0);
+          if (val > best) best = val;
+        }
+      }
+    } 
+    // V2 Legacy fallback
+    else if (log.movement === movement && log.mechanic === mechanic && (!level || log.level === level)) {
+      const val = parseLegacyPerformance(log.top_set_performance || '');
+      if (val > best) best = val;
+    }
+  }
 
-  return Math.max(...filtered.map(l => parsePerformance(l.top_set_performance)));
+  return best;
 }
 
-// Calculate progress percentage for a skill based on its milestones
 export function getSkillProgress(skill: Skill): number {
   if (skill.milestones.length === 0) return 0;
-  const finalTarget = skill.milestones[skill.milestones.length - 1].target;
-  if (finalTarget === 0) return 0;
-  return Math.min((skill.current / finalTarget) * 100, 100);
+  // Progress is relative to the currently active milestone
+  const next = getNextMilestone(skill);
+  if (!next) return 100; // maxed out
+  
+  // Find previous tier target to calculate relative progress
+  let prevTarget = 0;
+  for (const m of skill.milestones) {
+    if (m === next) break;
+    prevTarget = m.target;
+  }
+  
+  const currentLevelProgress = skill.current - prevTarget;
+  const targetDiff = next.target - prevTarget;
+  
+  if (currentLevelProgress <= 0) return 0;
+  return Math.min((currentLevelProgress / targetDiff) * 100, 100);
 }
 
-// Get the next milestone that hasn't been reached
 export function getNextMilestone(skill: Skill): Milestone | null {
   for (const m of skill.milestones) {
-    if (skill.current < m.target) return m;
+    if (!m.unlocked) return m;
   }
   return null;
 }
 
-// Get the current milestone tier (0-indexed)
 export function getCurrentTier(skill: Skill): number {
   let tier = 0;
   for (const m of skill.milestones) {
-    if (skill.current >= m.target) tier++;
+    if (m.unlocked) tier++;
   }
   return tier;
 }
 
 // ─────────────────────────────────────────────────────────────
-// Build skills from Nolan's ACTUAL objectives
+// Build skills with Exam Logic
 // ─────────────────────────────────────────────────────────────
 export function buildSkills(logs: TrainingLog[]): Skill[] {
+  // Helper to determine if a milestone is unlocked (meaning an exam was passed for it)
+  // Since we are migrating to V3, we will simulate unlocked state based on current max,
+  // but future unlocks require explicit is_exam logs.
+  
+  const hasPassedExam = (movement: string, target: number, unit: 's'|'reps') => {
+    // Look for a log that is an exam, has the movement, and beats the target
+    return logs.some(l => {
+      if (!l.is_exam) return false;
+      if (l.sets) {
+        return l.sets.some(s => {
+          if (s.movement !== movement) return false;
+          const val = unit === 's' ? (s.duration || 0) : (s.reps || 0);
+          return val >= target;
+        });
+      }
+      return false;
+    });
+  };
+
+  const createSkill = (
+    id: string, name: string, icon: string, subtitle: string, 
+    movement: string, mechanic: string, unit: 's'|'reps', level: string,
+    milestonesDef: {label: string, target: number}[]
+  ): Skill => {
+    const current = getBestPerformance(logs, movement, mechanic, unit, level);
+    
+    const milestones: Milestone[] = milestonesDef.map((m) => {
+      // In V3, a tier is unlocked if an exam was passed OR if it's the base tier and current > target
+      // For migration sake, if we don't have exams yet, we auto-unlock if current >= target
+      const examPassed = hasPassedExam(movement, m.target, unit);
+      const isUnlocked = examPassed || (current >= m.target); 
+      return { ...m, unit, unlocked: isUnlocked };
+    });
+
+    const next = milestones.find(m => !m.unlocked);
+    // Exam is available if current performance reaches or exceeds the locked milestone target
+    const isExamAvailable = next ? current >= next.target : false;
+
+    return {
+      id, name, icon, subtitle, current, milestones, movement, mechanic, level, isExamAvailable
+    };
+  };
+
   return [
-    {
-      id: 'fl-hold',
-      name: 'Front Lever',
-      icon: '🔒',
-      subtitle: 'Hold · Full',
-      current: Math.max(3, getBestPerformance(logs, 'Front Lever', 'Hold', 'Full')),
-      milestones: [
-        { label: 'Base', target: 3, unit: 's' },
-        { label: 'Solid', target: 5, unit: 's' },
-        { label: 'Elite', target: 8, unit: 's' },
-        { label: 'Master', target: 10, unit: 's' },
-      ],
-      movement: 'Front Lever',
-      mechanic: 'Hold',
-      level: 'Full',
-    },
-    {
-      id: 'fl-pull',
-      name: 'FL Pull-ups',
-      icon: '⚡',
-      subtitle: 'Pull · Adv Tuck',
-      current: Math.max(2, getBestPerformance(logs, 'Front Lever', 'Pull', 'Adv Tuck')),
-      milestones: [
-        { label: 'Base', target: 2, unit: 'reps' },
-        { label: 'Solid', target: 3, unit: 'reps' },
-        { label: 'Target', target: 5, unit: 'reps' },
-        { label: 'Elite', target: 8, unit: 'reps' },
-      ],
-      movement: 'Front Lever',
-      mechanic: 'Pull',
-      level: 'Adv Tuck',
-    },
-    {
-      id: 'hs',
-      name: 'Handstand',
-      icon: '🤸',
-      subtitle: 'Hold · Free',
-      current: Math.max(15, getBestPerformance(logs, 'Handstand', 'Hold', 'Full')),
-      milestones: [
-        { label: 'Base', target: 15, unit: 's' },
-        { label: 'Solid', target: 30, unit: 's' },
-        { label: 'Clean', target: 45, unit: 's' },
-        { label: 'Master', target: 60, unit: 's' },
-      ],
-      movement: 'Handstand',
-      mechanic: 'Hold',
-      level: 'Full',
-    },
-    {
-      id: 'planche',
-      name: 'Planche',
-      icon: '🔥',
-      subtitle: 'Hold · Tuck',
-      current: getBestPerformance(logs, 'Planche', 'Hold', 'Tuck'),
-      milestones: [
-        { label: 'Init', target: 3, unit: 's' },
-        { label: 'Base', target: 5, unit: 's' },
-        { label: 'Solid', target: 8, unit: 's' },
-        { label: 'Adv Tuck', target: 10, unit: 's' },
-      ],
-      movement: 'Planche',
-      mechanic: 'Hold',
-      level: 'Tuck',
-    },
-    {
-      id: 'pullups',
-      name: 'Pull-ups',
-      icon: '💪',
-      subtitle: 'Strict Pronation',
-      current: Math.max(17, getBestPerformance(logs, 'Accessoire', 'Pull')),
-      milestones: [
-        { label: 'Current', target: 17, unit: 'reps' },
-        { label: 'Strong', target: 20, unit: 'reps' },
-        { label: 'Historic', target: 24, unit: 'reps' },
-        { label: 'Beyond', target: 28, unit: 'reps' },
-      ],
-      movement: 'Accessoire',
-      mechanic: 'Pull',
-    },
+    createSkill('fl-hold', 'Front Lever', '🔒', 'Hold · Full', 'Front Lever', 'Hold', 's', 'Full', [
+      { label: 'Base', target: 3 },
+      { label: 'Solid', target: 5 },
+      { label: 'Elite', target: 8 },
+      { label: 'Master', target: 10 },
+    ]),
+    createSkill('fl-pull', 'FL Pull-ups', '⚡', 'Pull · Adv Tuck', 'Front Lever', 'Pull', 'reps', 'Adv Tuck', [
+      { label: 'Base', target: 2 },
+      { label: 'Solid', target: 3 },
+      { label: 'Target', target: 5 },
+      { label: 'Elite', target: 8 },
+    ]),
+    createSkill('hs', 'Handstand', '🤸', 'Hold · Free', 'Handstand', 'Hold', 's', 'Full', [
+      { label: 'Base', target: 15 },
+      { label: 'Solid', target: 30 },
+      { label: 'Clean', target: 45 },
+      { label: 'Master', target: 60 },
+    ]),
+    createSkill('planche', 'Planche', '🔥', 'Hold · Tuck', 'Planche', 'Hold', 's', 'Tuck', [
+      { label: 'Init', target: 3 },
+      { label: 'Base', target: 5 },
+      { label: 'Solid', target: 8 },
+      { label: 'Adv Tuck', target: 10 },
+    ]),
+    createSkill('pullups', 'Pull-ups', '💪', 'Strict Pronation', 'Accessoire', 'Pull', 'reps', 'Full', [
+      { label: 'Current', target: 17 },
+      { label: 'Strong', target: 20 },
+      { label: 'Historic', target: 24 },
+      { label: 'Beyond', target: 28 },
+    ])
   ];
 }
 
@@ -176,19 +186,26 @@ export function buildSkills(logs: TrainingLog[]): Skill[] {
 export function calculateXP(logs: TrainingLog[]): number {
   let xp = 0;
   for (const log of logs) {
-    // Base XP per log
     xp += 25;
-    // Bonus for high energy
     if (log.energy_level >= 8) xp += 10;
-    // Bonus for Force cycle (harder)
     if (log.cycle_type === 'Force') xp += 15;
-    // Bonus for Full level (most advanced)
-    if (log.level === 'Full') xp += 20;
+    
+    // Exam bonus
+    if (log.is_exam) xp += 100;
+
+    if (log.sets) {
+      // Bonus for super sets
+      if (log.sets.length > 1) xp += 20 * (log.sets.length - 1);
+      // Bonus for level
+      if (log.sets.some(s => s.level === 'Full')) xp += 20;
+    } else {
+      if (log.level === 'Full') xp += 20;
+    }
   }
   return xp;
 }
 
-export function getLevel(xp: number): { level: number; title: string; xpInLevel: number; xpForNext: number } {
+export function getLevel(xp: number) {
   const levels = [
     { threshold: 0, title: 'Rookie' },
     { threshold: 100, title: 'Initiate' },
@@ -225,31 +242,21 @@ export function getLevel(xp: number): { level: number; title: string; xpInLevel:
   };
 }
 
-// ─────────────────────────────────────────────────────────────
-// Streak System
-// ─────────────────────────────────────────────────────────────
 export function calculateStreak(logs: TrainingLog[]): number {
   if (logs.length === 0) return 0;
-
-  // Group logs by ISO week
   const weekSet = new Set<string>();
   for (const log of logs) {
-    const d = new Date(log.created_at);
-    const week = getISOWeek(d);
-    weekSet.add(week);
+    weekSet.add(getISOWeek(new Date(log.created_at)));
   }
-
   const sortedWeeks = Array.from(weekSet).sort().reverse();
   if (sortedWeeks.length === 0) return 0;
 
-  // Check if current week is active
   const currentWeek = getISOWeek(new Date());
   const lastWeek = getISOWeek(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
-
+  
   let streak = 0;
   let checkWeek = currentWeek;
 
-  // Allow current week or last week as starting point
   if (sortedWeeks[0] === currentWeek || sortedWeeks[0] === lastWeek) {
     checkWeek = sortedWeeks[0];
   } else {
@@ -259,7 +266,6 @@ export function calculateStreak(logs: TrainingLog[]): number {
   for (const week of sortedWeeks) {
     if (week === checkWeek) {
       streak++;
-      // Calculate previous week
       const d = parseISOWeek(checkWeek);
       d.setDate(d.getDate() - 7);
       checkWeek = getISOWeek(d);
