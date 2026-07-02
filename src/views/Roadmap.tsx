@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { db } from '../lib/db';
 import type { TrainingLog, Movement, Level, Mechanic } from '../lib/db';
 import { buildSkills } from '../lib/progression';
-import Header from '../components/Header';
 import { Lock, Unlock, CheckCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { Variants } from 'framer-motion';
@@ -34,8 +33,11 @@ export default function Roadmap({ openLogger }: RoadmapProps) {
   const skills = buildSkills(logs);
 
   return (
-    <div className="flex flex-col gap-0 min-h-screen">
-      <Header />
+    <div className="flex flex-col gap-6 pt-6">
+      <div className="px-5">
+        <h1 className="text-3xl font-serif font-bold tracking-tight mb-2">Roadmap</h1>
+        <p className="text-sm text-brand-text/60">Ton plan de bataille actuel.</p>
+      </div>
       
       <div className="px-5 mt-4">
         <h2 className="font-serif text-xl font-bold mb-1">Roadmap (2026-2028)</h2>

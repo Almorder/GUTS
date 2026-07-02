@@ -29,8 +29,7 @@ export default function Planner() {
 
   const handleGenerate = () => {
     if (selectedDays.length === 0) return;
-    const logs = db.getLogs();
-    const newProg = generateProgram(selectedDays, hour, logs, cycle);
+    const newProg = generateProgram(selectedDays, hour, cycle);
     setDraft(newProg); // Show draft for editing before saving
   };
 

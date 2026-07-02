@@ -38,7 +38,7 @@ export default function Home({ logs, onRefresh }: HomeProps) {
             <h3 className="font-bold text-sm uppercase tracking-widest">Objectif Semaine</h3>
           </div>
           <p className="text-xs font-medium text-brand-bg/80 leading-relaxed">
-            Phase Volume. Viser 30s cumulées de Front Lever par session. Maintenir une Readiness > 6/10.
+            Phase Volume. Viser 30s cumulées de Front Lever par session. Maintenir une Readiness &gt; 6/10.
           </p>
         </div>
       </div>

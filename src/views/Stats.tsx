@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { db } from '../lib/db';
 import type { TrainingLog, Movement, Mechanic } from '../lib/db';
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
-import { format, subDays, startOfWeek, addDays } from 'date-fns';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { format, subDays } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Trophy, Activity, Flame, Medal, X as CloseIcon } from 'lucide-react';
 import Dashboard from '../components/Dashboard';

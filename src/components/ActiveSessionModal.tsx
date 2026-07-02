@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { X, Check, Timer } from 'lucide-react';
 import { db } from '../lib/db';
 import type { SubSet, CycleType } from '../lib/db';
@@ -16,13 +16,22 @@ export interface ActiveSessionProps {
   onSave: () => void;
 }
 
+interface ActiveSet extends SubSet {
+  targetReps?: number;
+  targetDuration?: number;
+  targetWeight?: number;
+  reps: number;
+  duration: number;
+  weight: number;
+}
+
 export default function ActiveSessionModal({ session, cycleType, onClose, onSave }: ActiveSessionProps) {
   // If no structured_focus is available, fallback to a single Front Lever hold to prevent crash
-  const initialSets = session.structured_focus && session.structured_focus.length > 0 
+  const initialSets: ActiveSet[] = session.structured_focus && session.structured_focus.length > 0 
     ? session.structured_focus.map(s => ({ ...s, targetReps: s.reps, targetDuration: s.duration, targetWeight: s.weight, reps: 0, duration: 0, weight: s.weight || 0 }))
     : [{ movement: 'Front Lever' as any, mechanic: 'Hold' as any, level: 'Full' as any, reps: 0, duration: 0, weight: 0, targetDuration: 5 }];
 
-  const [activeSets, setActiveSets] = useState(initialSets);
+  const [activeSets, setActiveSets] = useState<ActiveSet[]>(initialSets);
   const [energy, setEnergy] = useState(7);
   const [saved, setSaved] = useState(false);
 

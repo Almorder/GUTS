@@ -1,4 +1,4 @@
-import type { TrainingLog, TrainingProgram, CycleType, SubSet } from './db';
+import type { TrainingProgram, CycleType, SubSet } from './db';
 
 interface SessionTemplate {
   focusStrs: string[];
@@ -60,7 +60,6 @@ const FOCUS_MAPPING: Record<CycleType, SessionTemplate[]> = {
 export function generateProgram(
   availableDays: string[], 
   availableHours: string, 
-  logs: TrainingLog[],
   targetCycle: CycleType
 ): Omit<TrainingProgram, 'id' | 'created_at'> {
   
