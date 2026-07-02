@@ -9,6 +9,7 @@ import Roadmap from './views/Roadmap';
 import Stats from './views/Stats';
 import Planner from './views/Planner';
 import Settings from './views/Settings';
+import Onboarding from './views/Onboarding';
 
 import NavBar from './components/NavBar';
 import MainAction from './components/MainAction';
@@ -48,16 +49,24 @@ function PageWrapper({ children }: { children: React.ReactNode }) {
 
 function App() {
   const [logs, setLogs] = useState<TrainingLog[]>([]);
+  const [hasLoaded, setHasLoaded] = useState(false);
   const [modalConfig, setModalConfig] = useState<LogModalConfig>({ isOpen: false });
   const location = useLocation();
 
   const refreshLogs = () => {
     setLogs(db.getLogs());
+    setHasLoaded(true);
   };
 
   useEffect(() => {
     refreshLogs();
   }, []);
+
+  if (!hasLoaded) return null;
+
+  if (logs.length === 0) {
+    return <Onboarding onComplete={() => refreshLogs()} />;
+  }
 
   return (
     <div className="max-w-md mx-auto min-h-screen relative flex flex-col bg-brand-bg text-brand-text overflow-hidden">

@@ -5,7 +5,8 @@ export function generateProgram(
   availableDays: string[], 
   availableHours: string, 
   targetCycle: CycleType,
-  logs: TrainingLog[]
+  logs: TrainingLog[],
+  readinessScore: number
 ): Omit<TrainingProgram, 'id' | 'created_at'> {
   
   // Helpers to get PRs
@@ -15,12 +16,16 @@ export function generateProgram(
   const isForce = targetCycle === 'Force';
   const isVolume = targetCycle === 'Volume';
   
-  const intensity = isForce ? 0.85 : isVolume ? 0.70 : 0.50;
+  // Readiness Scaling (Deload if < 5)
+  const isDeload = readinessScore < 5;
+  const scale = isDeload ? 0.6 : 1; // 40% reduction in intensity/volume if fatigued
+  
+  const intensity = (isForce ? 0.85 : isVolume ? 0.70 : 0.50) * scale;
   const restMain = isForce ? 180 : isVolume ? 120 : 90;
   const restSec = isForce ? 150 : isVolume ? 90 : 60;
   
-  const setsMain = isForce ? 5 : isVolume ? 4 : 3;
-  const setsSec = isForce ? 4 : isVolume ? 4 : 3;
+  const setsMain = Math.max(2, Math.floor((isForce ? 5 : isVolume ? 4 : 3) * scale));
+  const setsSec = Math.max(2, Math.floor((isForce ? 4 : isVolume ? 4 : 3) * scale));
 
   // Day 1 Template: Front Lever & Pullups
   const buildDay1 = (): SubSet[] => {

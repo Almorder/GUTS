@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { db } from '../lib/db';
 import type { TrainingProgram, CycleType } from '../lib/db';
 import { generateProgram } from '../lib/scheduler';
+import { getReadinessScore } from '../lib/progression';
 import { Calendar as CalIcon, Clock, Sparkles, Check, Edit2, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -30,7 +31,8 @@ export default function Planner() {
   const handleGenerate = () => {
     if (selectedDays.length === 0) return;
     const logs = db.getLogs();
-    const newProg = generateProgram(selectedDays, hour, cycle, logs);
+    const readiness = getReadinessScore(logs);
+    const newProg = generateProgram(selectedDays, hour, cycle, logs, readiness);
     setDraft(newProg); // Show draft for editing before saving
   };
 
@@ -38,7 +40,8 @@ export default function Planner() {
     const optimalDays = ['Lundi', 'Mercredi', 'Vendredi'];
     setSelectedDays(optimalDays);
     const logs = db.getLogs();
-    const newProg = generateProgram(optimalDays, '18:00', cycle, logs);
+    const readiness = getReadinessScore(logs);
+    const newProg = generateProgram(optimalDays, '18:00', cycle, logs, readiness);
     setHour('18:00');
     setDraft(newProg);
   };

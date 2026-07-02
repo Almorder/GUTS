@@ -17,6 +17,24 @@ export interface ActiveSessionProps {
   onSave: () => void;
 }
 
+function playBeep() {
+  try {
+    const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+    const ctx = new AudioContext();
+    const osc = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(880, ctx.currentTime); // A5
+    gainNode.gain.setValueAtTime(0.1, ctx.currentTime);
+    osc.connect(gainNode);
+    gainNode.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.5); // 500ms beep
+  } catch (e) {
+    // Ignore if audio not supported
+  }
+}
+
 interface ActiveSet extends SubSet {
   targetReps?: number;
   targetDuration?: number;
@@ -49,6 +67,7 @@ export default function ActiveSessionModal({ session, cycleType, onClose, onSave
         setRestTimeLeft(prev => {
           if (prev <= 1) {
             haptic.success(); // Vibrate when rest is over
+            playBeep(); // Play sound
             setIsResting(false);
             setCurrentIndex(idx => idx + 1);
             return 0;

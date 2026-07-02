@@ -157,5 +157,36 @@ export const db = {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  },
+
+  exportToJSON: (): void => {
+    const data = {
+      logs: db.getLogs(),
+      programs: db.getPrograms()
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `nolan_arc_backup_${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  },
+
+  importFromJSON: (jsonString: string): boolean => {
+    try {
+      const data = JSON.parse(jsonString);
+      if (data.logs && Array.isArray(data.logs)) {
+        localStorage.setItem(LOGS_KEY, JSON.stringify(data.logs));
+      }
+      if (data.programs && Array.isArray(data.programs)) {
+        localStorage.setItem(PROGRAMS_KEY, JSON.stringify(data.programs));
+      }
+      return true;
+    } catch (e) {
+      console.error("Import failed", e);
+      return false;
+    }
   }
 };
