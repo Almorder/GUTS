@@ -1,8 +1,23 @@
 import type { TrainingLog, SubSet } from '../lib/db';
+import { motion } from 'framer-motion';
+import type { Variants } from 'framer-motion';
 
 interface DashboardProps {
   logs: TrainingLog[];
 }
+
+const containerVariants: Variants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.05 }
+  }
+};
+
+const itemVariants: Variants = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } }
+};
 
 export default function Dashboard({ logs }: DashboardProps) {
   const sevenDaysAgo = new Date();
@@ -14,13 +29,13 @@ export default function Dashboard({ logs }: DashboardProps) {
 
   if (recentLogs.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 gap-3">
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center py-12 gap-3">
         <div className="text-4xl">🎯</div>
         <p className="text-sm text-brand-text/40 text-center">
           Aucune performance récente.<br/>
           <span className="text-brand-accent font-bold">Log ton premier Top Set.</span>
         </p>
-      </div>
+      </motion.div>
     );
   }
 
@@ -36,21 +51,28 @@ export default function Dashboard({ logs }: DashboardProps) {
   }
 
   return (
-    <div className="flex flex-col gap-4 pb-8">
+    <motion.div
+      variants={containerVariants}
+      initial="hidden"
+      animate="show"
+      className="flex flex-col gap-4 pb-8"
+    >
       {Array.from(grouped.entries()).map(([day, dayLogs]) => (
         <div key={day}>
-          <div className="flex items-center gap-3 mb-2">
+          <motion.div variants={itemVariants} className="flex items-center gap-3 mb-2">
             <span className="text-xs font-bold uppercase tracking-widest text-brand-text/40">{day}</span>
             <div className="flex-1 h-px bg-brand-border" />
-          </div>
+          </motion.div>
           <div className="flex flex-col gap-2">
             {dayLogs.map(log => (
-              <LogCard key={log.id} log={log} />
+              <motion.div key={log.id} variants={itemVariants}>
+                <LogCard log={log} />
+              </motion.div>
             ))}
           </div>
         </div>
       ))}
-    </div>
+    </motion.div>
   );
 }
 
@@ -70,7 +92,6 @@ function LogCard({ log }: { log: TrainingLog }) {
     'Accessoire': '🔧',
   };
 
-  // Support V2 legacy
   const sets = log.sets && log.sets.length > 0 ? log.sets : [
     { movement: log.movement!, mechanic: log.mechanic!, level: log.level!, reps: 0, duration: 0, weight: 0 }
   ];
@@ -78,15 +99,17 @@ function LogCard({ log }: { log: TrainingLog }) {
   const mainMovement = sets[0].movement;
 
   return (
-    <div className={`flex items-start gap-3 p-3 border rounded-lg transition-colors duration-200 ${
-      log.is_exam ? 'border-brand-accent bg-brand-accent/5' : 'border-brand-border bg-brand-bg hover:border-brand-text/20'
-    }`}>
-      {/* Icon */}
+    <motion.div
+      whileHover={{ scale: 1.01 }}
+      whileTap={{ scale: 0.99 }}
+      className={`flex items-start gap-3 p-3 border rounded-lg transition-colors duration-200 ${
+        log.is_exam ? 'border-brand-accent bg-brand-accent/5' : 'border-brand-border bg-brand-bg hover:border-brand-text/20'
+      }`}
+    >
       <div className="text-xl shrink-0 pt-1">
         {log.is_exam ? '🎓' : (movementColors[mainMovement] || '📊')}
       </div>
 
-      {/* Info */}
       <div className="flex-1 min-w-0 flex flex-col gap-2">
         {sets.map((s, i) => (
           <div key={i} className={`flex items-center justify-between ${i > 0 ? 'pt-2 border-t border-brand-border/50' : ''}`}>
@@ -108,7 +131,6 @@ function LogCard({ log }: { log: TrainingLog }) {
           </div>
         ))}
         
-        {/* Footer (Tags + Energy) */}
         <div className="flex items-center justify-between mt-1 pt-2 border-t border-brand-border/30">
           <div className="flex flex-wrap gap-1">
             {log.tags?.map(t => (
@@ -136,6 +158,6 @@ function LogCard({ log }: { log: TrainingLog }) {
           </div>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }

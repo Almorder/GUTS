@@ -4,6 +4,21 @@ import type { TrainingLog } from '../lib/db';
 import { buildSkills } from '../lib/progression';
 import Header from '../components/Header';
 import { Lock, Unlock, CheckCircle } from 'lucide-react';
+import { motion } from 'framer-motion';
+import type { Variants } from 'framer-motion';
+
+const containerVariants: Variants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.1 }
+  }
+};
+
+const itemVariants: Variants = {
+  hidden: { opacity: 0, x: -20 },
+  show: { opacity: 1, x: 0, transition: { type: 'spring', stiffness: 200, damping: 20 } }
+};
 
 export default function Roadmap() {
   const [logs, setLogs] = useState<TrainingLog[]>([]);
@@ -22,9 +37,14 @@ export default function Roadmap() {
         <h2 className="font-serif text-xl font-bold mb-1">Roadmap (2026-2028)</h2>
         <p className="text-xs text-brand-text/50 mb-6">La voie de la maîtrise. Passe les examens pour débloquer les paliers suivants.</p>
         
-        <div className="flex flex-col gap-8 pb-10">
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="show"
+          className="flex flex-col gap-8 pb-10"
+        >
           {skills.map(skill => (
-            <div key={skill.id} className="relative">
+            <motion.div key={skill.id} variants={itemVariants} className="relative">
               {/* Skill Header */}
               <div className="flex items-center gap-3 mb-4">
                 <span className="text-2xl">{skill.icon}</span>
@@ -42,20 +62,23 @@ export default function Roadmap() {
                   const isCurrentTarget = !m.unlocked && (i === 0 || skill.milestones[i - 1].unlocked);
 
                   return (
-                    <div key={i} className="relative">
+                    <motion.div key={i} variants={itemVariants} className="relative">
                       {/* Timeline Dot */}
-                      <div className={`absolute -left-[23px] top-1 w-3 h-3 rounded-full border-2 ${
+                      <div className={`absolute -left-[23px] top-1 w-3 h-3 rounded-full border-2 transition-colors duration-500 ${
                         isPassed ? 'bg-brand-accent border-brand-accent' :
                         isCurrentTarget ? 'bg-brand-bg border-brand-accent' :
                         'bg-brand-bg border-brand-border'
                       }`} />
 
                       {/* Content Card */}
-                      <div className={`p-3 rounded-lg border transition-all duration-300 ${
-                        isPassed ? 'border-brand-accent/30 bg-brand-accent/5' :
-                        isCurrentTarget ? 'border-brand-text/30 bg-brand-bg shadow-sm' :
-                        'border-brand-border/40 bg-brand-bg/50 opacity-50'
-                      }`}>
+                      <motion.div
+                        whileHover={{ scale: 1.02 }}
+                        className={`p-3 rounded-lg border transition-all duration-300 ${
+                          isPassed ? 'border-brand-accent/30 bg-brand-accent/5' :
+                          isCurrentTarget ? 'border-brand-text/30 bg-brand-bg shadow-sm' :
+                          'border-brand-border/40 bg-brand-bg/50 opacity-50'
+                        }`}
+                      >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             {isPassed ? <CheckCircle size={14} className="text-brand-accent" /> :
@@ -68,26 +91,32 @@ export default function Roadmap() {
                           </span>
                         </div>
                         {isCurrentTarget && skill.isExamAvailable && (
-                          <div className="mt-2 text-[10px] uppercase font-bold text-brand-bg bg-brand-accent rounded px-2 py-1 inline-block">
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            className="mt-2 text-[10px] uppercase font-bold text-brand-bg bg-brand-accent rounded px-2 py-1 inline-block"
+                          >
                             🎓 Examen Débloqué ! Logue-le dans le QG.
-                          </div>
+                          </motion.div>
                         )}
                         {isCurrentTarget && !skill.isExamAvailable && (
                           <div className="mt-2 w-full h-1 bg-brand-border/40 rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-brand-text rounded-full transition-all duration-700"
-                              style={{ width: `${Math.min((skill.current / m.target) * 100, 100)}%` }}
+                            <motion.div
+                              initial={{ width: 0 }}
+                              animate={{ width: `${Math.min((skill.current / m.target) * 100, 100)}%` }}
+                              transition={{ duration: 1, delay: 0.5, ease: "easeOut" }}
+                              className="h-full bg-brand-text rounded-full"
                             />
                           </div>
                         )}
-                      </div>
-                    </div>
+                      </motion.div>
+                    </motion.div>
                   );
                 })}
               </div>
-            </div>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       </div>
     </div>
   );
