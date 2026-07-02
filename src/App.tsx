@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { db } from './lib/db';
-import type { TrainingLog } from './lib/db';
+import type { TrainingLog, Movement, Level, Mechanic } from './lib/db';
 
 import Home from './views/Home';
 import Roadmap from './views/Roadmap';
@@ -13,6 +13,16 @@ import Settings from './views/Settings';
 import NavBar from './components/NavBar';
 import MainAction from './components/MainAction';
 import LogModal from './components/LogModal';
+
+export interface LogModalConfig {
+  isOpen: boolean;
+  isExam?: boolean;
+  movement?: Movement;
+  level?: Level;
+  mechanic?: Mechanic;
+  targetUnit?: 's' | 'reps';
+  targetValue?: number;
+}
 
 const pageVariants = {
   initial: { opacity: 0, y: 10, filter: 'blur(4px)' },
@@ -28,7 +38,7 @@ function PageWrapper({ children }: { children: React.ReactNode }) {
       animate="animate"
       exit="exit"
       transition={{ duration: 0.3, ease: 'easeOut' }}
-      className="pb-24"
+      className="pt-24 pb-32"
     >
       {children}
     </motion.div>
@@ -37,7 +47,7 @@ function PageWrapper({ children }: { children: React.ReactNode }) {
 
 function App() {
   const [logs, setLogs] = useState<TrainingLog[]>([]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalConfig, setModalConfig] = useState<LogModalConfig>({ isOpen: false });
   const location = useLocation();
 
   const refreshLogs = () => {
@@ -50,12 +60,15 @@ function App() {
 
   return (
     <div className="max-w-md mx-auto min-h-screen relative flex flex-col bg-brand-bg text-brand-text overflow-hidden">
+      {/* Top Navigation */}
+      <NavBar />
+
       {/* Routes with AnimatePresence */}
       <div className="flex-1 overflow-y-auto">
         <AnimatePresence mode="wait">
           <Routes location={location} key={location.pathname}>
             <Route path="/" element={<PageWrapper><Home logs={logs} /></PageWrapper>} />
-            <Route path="/roadmap" element={<PageWrapper><Roadmap /></PageWrapper>} />
+            <Route path="/roadmap" element={<PageWrapper><Roadmap openLogger={(c) => setModalConfig({ ...c, isOpen: true })} /></PageWrapper>} />
             <Route path="/stats" element={<PageWrapper><Stats /></PageWrapper>} />
             <Route path="/planner" element={<PageWrapper><Planner /></PageWrapper>} />
             <Route path="/settings" element={<PageWrapper><Settings /></PageWrapper>} />
@@ -64,19 +77,17 @@ function App() {
       </div>
 
       {/* Main CTA (Global) */}
-      <MainAction onClick={() => setIsModalOpen(true)} />
-
-      {/* Bottom Navigation */}
-      <NavBar />
+      <MainAction onClick={() => setModalConfig({ isOpen: true })} />
 
       {/* Modal with AnimatePresence */}
       <AnimatePresence>
-        {isModalOpen && (
+        {modalConfig.isOpen && (
           <LogModal
-            onClose={() => setIsModalOpen(false)}
+            config={modalConfig}
+            onClose={() => setModalConfig({ isOpen: false })}
             onSave={() => {
               refreshLogs();
-              setIsModalOpen(false);
+              setModalConfig({ isOpen: false });
             }}
           />
         )}

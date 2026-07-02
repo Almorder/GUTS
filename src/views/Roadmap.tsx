@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { db } from '../lib/db';
-import type { TrainingLog } from '../lib/db';
+import type { TrainingLog, Movement, Level, Mechanic } from '../lib/db';
 import { buildSkills } from '../lib/progression';
 import Header from '../components/Header';
 import { Lock, Unlock, CheckCircle } from 'lucide-react';
@@ -20,7 +20,11 @@ const itemVariants: Variants = {
   show: { opacity: 1, x: 0, transition: { type: 'spring', stiffness: 200, damping: 20 } }
 };
 
-export default function Roadmap() {
+interface RoadmapProps {
+  openLogger?: (config: { isExam: boolean, movement: Movement, level: Level, mechanic: Mechanic, targetUnit: 's'|'reps', targetValue: number }) => void;
+}
+
+export default function Roadmap({ openLogger }: RoadmapProps) {
   const [logs, setLogs] = useState<TrainingLog[]>([]);
 
   useEffect(() => {
@@ -94,9 +98,21 @@ export default function Roadmap() {
                           <motion.div
                             initial={{ opacity: 0, height: 0 }}
                             animate={{ opacity: 1, height: 'auto' }}
-                            className="mt-2 text-[10px] uppercase font-bold text-brand-bg bg-brand-accent rounded px-2 py-1 inline-block"
+                            className="mt-3"
                           >
-                            🎓 Examen Débloqué ! Logue-le dans le QG.
+                            <button
+                              onClick={() => openLogger?.({
+                                isExam: true,
+                                movement: skill.movement as Movement,
+                                level: skill.level as Level,
+                                mechanic: skill.mechanic as Mechanic,
+                                targetUnit: m.unit,
+                                targetValue: m.target
+                              })}
+                              className="w-full bg-brand-accent text-brand-bg py-2 rounded uppercase tracking-widest font-bold text-[10px] flex items-center justify-center gap-2 shadow-sm"
+                            >
+                              🎓 Passer l'Examen ({m.target}{m.unit})
+                            </button>
                           </motion.div>
                         )}
                         {isCurrentTarget && !skill.isExamAvailable && (

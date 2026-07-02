@@ -4,7 +4,18 @@ import type { CycleType, Movement, Mechanic, Level, SubSet } from '../lib/db';
 import { X, Plus, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+export interface LogModalConfig {
+  isOpen: boolean;
+  isExam?: boolean;
+  movement?: Movement;
+  level?: Level;
+  mechanic?: Mechanic;
+  targetUnit?: 's' | 'reps';
+  targetValue?: number;
+}
+
 interface LogModalProps {
+  config?: LogModalConfig;
   onClose: () => void;
   onSave: () => void;
 }
@@ -14,19 +25,31 @@ const MOVEMENTS: Movement[] = ['Front Lever', 'Planche', 'Handstand', 'Accessoir
 const MECHANICS: Mechanic[] = ['Hold', 'Pull', 'Negative', 'Raise'];
 const LEVELS: Level[] = ['Tuck', 'Adv Tuck', 'Half Lay', 'Full'];
 
-const PRESET_TAGS = ['🔥 Forme Parfaite', '💨 Souffle Court', '🏋️ Lourd', '💥 Échec', '🔴 Douleur Lombaire', '🔴 Douleur Poignet'];
+const PRESET_TAGS = ['🔥 Forme Parfaite', '💨 Souffle Court', '🏋️ Lourd', '💥 Échec', '🔴 Douleur Lombaire', '🔴 Douleur Poignet', '💪 Elastique'];
 
-export default function LogModal({ onClose, onSave }: LogModalProps) {
+export default function LogModal({ config, onClose, onSave }: LogModalProps) {
   const [cycleType, setCycleType] = useState<CycleType>('Force');
   const [energy, setEnergy] = useState<number>(7);
   const [tags, setTags] = useState<string[]>([]);
-  const [isExam, setIsExam] = useState(false);
+  const [isExam, setIsExam] = useState(config?.isExam || false);
 
-  const [subsets, setSubsets] = useState<SubSet[]>([
-    { movement: 'Front Lever', mechanic: 'Hold', level: 'Full', reps: 0, duration: 0, weight: 0 }
-  ]);
+  const [subsets, setSubsets] = useState<SubSet[]>(() => {
+    // Initialize from config if provided
+    if (config?.movement) {
+      const initialSet: SubSet = {
+        movement: config.movement,
+        mechanic: config.mechanic || 'Hold',
+        level: config.level || 'Full',
+        reps: config.targetUnit === 'reps' ? config.targetValue : 0,
+        duration: config.targetUnit === 's' ? config.targetValue : 0,
+        weight: 0
+      };
+      return [initialSet];
+    }
+    return [{ movement: 'Front Lever', mechanic: 'Hold', level: 'Full', reps: 0, duration: 0, weight: 0 }];
+  });
+
   const [activeSetIndex, setActiveSetIndex] = useState(0);
-
   const activeSet = subsets[activeSetIndex];
 
   const updateActiveSet = (updates: Partial<SubSet>) => {
@@ -90,7 +113,7 @@ export default function LogModal({ onClose, onSave }: LogModalProps) {
 
         <div className="flex items-center justify-between px-5 py-3 shrink-0">
           <div className="flex items-center gap-3">
-            <h2 className="font-serif font-bold text-xl">Smart Logger</h2>
+            <h2 className="font-serif font-bold text-xl">{isExam ? '🎓 Examen' : 'Smart Logger'}</h2>
             <motion.button
               whileTap={{ scale: 0.95 }}
               onClick={() => setIsExam(!isExam)}
@@ -163,7 +186,7 @@ export default function LogModal({ onClose, onSave }: LogModalProps) {
                     <div className="mt-2 font-bold text-brand-accent tabular-nums">
                       {set.reps ? `${set.reps}r ` : ''}
                       {set.duration ? `${set.duration}s ` : ''}
-                      {set.weight ? `+${set.weight}kg` : ''}
+                      {set.weight ? (set.weight > 0 ? `+${set.weight}kg` : `${set.weight}kg`) : ''}
                       {!set.reps && !set.duration && !set.weight && '0'}
                     </div>
                   </motion.div>
@@ -233,25 +256,26 @@ export default function LogModal({ onClose, onSave }: LogModalProps) {
               </div>
 
               <div>
-                <label className="text-[10px] uppercase font-bold text-brand-accent tracking-widest block mb-3">Performance (Zero-Type)</label>
+                <label className="text-[10px] uppercase font-bold text-brand-accent tracking-widest block mb-3">Performance</label>
                 <div className="flex flex-col gap-3">
                   <MetricAdjuster
                     label="Répétitions"
                     value={activeSet.reps || 0}
-                    onChange={(v) => updateActiveSet({ reps: v })}
+                    onChange={(v) => updateActiveSet({ reps: Math.max(0, v) })} // reps cannot be negative
                     step={1}
                   />
                   <MetricAdjuster
                     label="Temps (sec)"
                     value={activeSet.duration || 0}
-                    onChange={(v) => updateActiveSet({ duration: v })}
+                    onChange={(v) => updateActiveSet({ duration: Math.max(0, v) })} // time cannot be negative
                     step={1}
                   />
                   <MetricAdjuster
-                    label="Lest (kg)"
+                    label="Lest / Élast. (kg)"
                     value={activeSet.weight || 0}
-                    onChange={(v) => updateActiveSet({ weight: v })}
+                    onChange={(v) => updateActiveSet({ weight: v })} // allow negative for elastics
                     step={2.5}
+                    format={(v) => v > 0 ? `+${v}` : `${v}`}
                   />
                 </div>
               </div>
@@ -311,7 +335,7 @@ export default function LogModal({ onClose, onSave }: LogModalProps) {
             disabled={!subsets.some(s => (s.reps || 0) > 0 || (s.duration || 0) > 0)}
             className="w-full bg-brand-accent text-brand-bg font-bold py-4 rounded-xl uppercase tracking-widest text-sm disabled:opacity-30 disabled:cursor-not-allowed"
           >
-            Save Performance
+            {isExam ? 'Valider l\'Examen' : 'Save Performance'}
           </motion.button>
         </div>
       </motion.div>
@@ -319,15 +343,15 @@ export default function LogModal({ onClose, onSave }: LogModalProps) {
   );
 }
 
-function MetricAdjuster({ label, value, onChange, step }: { label: string, value: number, onChange: (v: number) => void, step: number }) {
+function MetricAdjuster({ label, value, onChange, step, format }: { label: string, value: number, onChange: (v: number) => void, step: number, format?: (v: number) => string }) {
   return (
     <div className="flex items-center justify-between bg-brand-border/10 p-2 rounded-xl border border-brand-border/50">
-      <span className="text-xs font-bold w-24 pl-2">{label}</span>
+      <span className="text-xs font-bold w-28 pl-2">{label}</span>
       <div className="flex items-center gap-4">
         <motion.button
           whileTap={{ scale: 0.9 }}
-          onClick={() => onChange(Math.max(0, value - step))}
-          className="w-10 h-10 flex items-center justify-center rounded-lg bg-brand-bg border border-brand-border"
+          onClick={() => onChange(value - step)}
+          className="w-10 h-10 flex items-center justify-center rounded-lg bg-brand-bg border border-brand-border text-lg font-bold"
         >
           -
         </motion.button>
@@ -337,12 +361,12 @@ function MetricAdjuster({ label, value, onChange, step }: { label: string, value
           animate={{ y: 0, opacity: 1 }}
           className="w-12 text-center font-bold tabular-nums text-lg"
         >
-          {value}
+          {format ? format(value) : value}
         </motion.span>
         <motion.button
           whileTap={{ scale: 0.9 }}
           onClick={() => onChange(value + step)}
-          className="w-10 h-10 flex items-center justify-center rounded-lg bg-brand-bg border border-brand-border"
+          className="w-10 h-10 flex items-center justify-center rounded-lg bg-brand-bg border border-brand-border text-lg font-bold"
         >
           +
         </motion.button>

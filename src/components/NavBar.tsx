@@ -15,7 +15,7 @@ export default function NavBar() {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 w-full bg-brand-bg/95 backdrop-blur border-t border-brand-border z-30 pb-safe">
+    <nav className="fixed top-0 left-0 w-full bg-brand-bg/95 backdrop-blur border-b border-brand-border z-30 pt-safe">
       <div className="max-w-md mx-auto flex items-center justify-around px-2 py-3 relative">
         {links.map((link) => {
           const isActive = currentPath === link.to;
