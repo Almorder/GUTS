@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import type { TrainingLog } from '../lib/db';
 import { db } from '../lib/db';
-import { buildSkills } from '../lib/progression';
+import { buildSkills, getReadinessScore, getReadinessText } from '../lib/progression';
 import HeroStats from '../components/HeroStats';
 import SkillCard from '../components/SkillCard';
 import Dashboard from '../components/Dashboard';
 import { Target } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import QuickUpdateModal from '../components/QuickUpdateModal';
+import ExamModal from '../components/ExamModal';
 
 interface HomeProps {
   logs: TrainingLog[];
@@ -16,9 +17,11 @@ interface HomeProps {
 
 export default function Home({ logs, onRefresh }: HomeProps) {
   const [selectedSkill, setSelectedSkill] = useState<any>(null);
+  const [isExamModalOpen, setIsExamModalOpen] = useState(false);
 
   const skills = buildSkills(logs);
   const examAvailable = skills.some(s => s.isExamAvailable);
+  const readiness = getReadinessScore(logs);
 
   const handleDeleteLog = (id: string) => {
     if (window.confirm("Supprimer ce log définitivement ?")) {
@@ -33,12 +36,17 @@ export default function Home({ logs, onRefresh }: HomeProps) {
       {/* Weekly Goals */}
       <div className="px-5 mb-2">
         <div className="bg-brand-text text-brand-bg rounded-2xl p-4 shadow-lg shadow-brand-text/10">
-          <div className="flex items-center gap-2 mb-3">
-            <Target size={18} className="text-brand-accent" />
-            <h3 className="font-bold text-sm uppercase tracking-widest">Objectif Semaine</h3>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Target size={18} className="text-brand-accent" />
+              <h3 className="font-bold text-sm uppercase tracking-widest">Readiness Score</h3>
+            </div>
+            <span className={`font-bold text-lg tabular-nums ${readiness >= 8 ? 'text-green-500' : readiness >= 5 ? 'text-yellow-500' : 'text-red-500'}`}>
+              {readiness}/10
+            </span>
           </div>
           <p className="text-xs font-medium text-brand-bg/80 leading-relaxed">
-            Phase Volume. Viser 30s cumulées de Front Lever par session. Maintenir une Readiness &gt; 6/10.
+            {getReadinessText(readiness)}
           </p>
         </div>
       </div>
@@ -48,7 +56,10 @@ export default function Home({ logs, onRefresh }: HomeProps) {
         <motion.div 
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="mx-5 mt-2 p-3 border border-brand-accent bg-brand-accent/10 rounded-2xl flex items-center justify-center gap-3 shadow-sm"
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={() => setIsExamModalOpen(true)}
+          className="mx-5 mt-2 p-3 border border-brand-accent bg-brand-accent/10 rounded-2xl flex items-center justify-center gap-3 shadow-sm cursor-pointer"
         >
           <span className="text-2xl">🎓</span>
           <span className="text-xs uppercase font-bold tracking-widest text-brand-accent">Exam Disponible !</span>
@@ -86,6 +97,16 @@ export default function Home({ logs, onRefresh }: HomeProps) {
             onClose={() => setSelectedSkill(null)}
             onSave={() => {
               setSelectedSkill(null);
+              if (onRefresh) onRefresh();
+            }}
+          />
+        )}
+        {isExamModalOpen && (
+          <ExamModal
+            skills={skills.filter(s => s.isExamAvailable)}
+            onClose={() => setIsExamModalOpen(false)}
+            onSave={() => {
+              setIsExamModalOpen(false);
               if (onRefresh) onRefresh();
             }}
           />

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { X, Check, Timer } from 'lucide-react';
 import { db } from '../lib/db';
+import { haptic } from '../lib/haptics';
 import type { SubSet, CycleType } from '../lib/db';
 
 export interface ActiveSessionProps {
@@ -53,6 +54,7 @@ export default function ActiveSessionModal({ session, cycleType, onClose, onSave
       sets: validSets.map(({ targetReps, targetDuration, targetWeight, ...rest }) => rest), // remove targets
     });
 
+    haptic.success();
     setSaved(true);
     setTimeout(() => {
       onSave();
@@ -86,7 +88,7 @@ export default function ActiveSessionModal({ session, cycleType, onClose, onSave
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="absolute inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-xl"
         onClick={onClose}
       />
 
@@ -183,7 +185,10 @@ export default function ActiveSessionModal({ session, cycleType, onClose, onSave
                 <motion.button
                   whileTap={{ scale: 0.8 }}
                   key={i}
-                  onClick={() => setEnergy(i + 1)}
+                  onClick={() => {
+                    setEnergy(i + 1);
+                    haptic.light();
+                  }}
                   className={`flex-1 h-full rounded-md transition-colors duration-200 ${
                     i < energy
                       ? energy >= 8 ? 'bg-brand-accent' : energy >= 5 ? 'bg-brand-text' : 'bg-brand-text/60'
@@ -251,7 +256,10 @@ function MetricAdjuster({ label, value, target, onChange, step, format, hasTimer
       <div className="flex items-center gap-3">
         <motion.button
           whileTap={{ scale: 0.9 }}
-          onClick={() => onChange(value - step)}
+          onClick={() => {
+            onChange(value - step);
+            haptic.light();
+          }}
           className="w-10 h-10 flex items-center justify-center rounded-xl bg-brand-bg border border-brand-border/50 text-xl font-medium shadow-sm"
         >
           -
@@ -266,7 +274,12 @@ function MetricAdjuster({ label, value, target, onChange, step, format, hasTimer
         </motion.span>
         <motion.button
           whileTap={{ scale: 0.9 }}
-          onClick={() => onChange(value + step)}
+          onClick={() => {
+            const nextValue = value + step;
+            onChange(nextValue);
+            haptic.light();
+            if (target && nextValue === target) haptic.success();
+          }}
           className="w-10 h-10 flex items-center justify-center rounded-xl bg-brand-bg border border-brand-border/50 text-xl font-medium shadow-sm"
         >
           +

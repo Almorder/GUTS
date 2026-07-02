@@ -33,6 +33,14 @@ export default function Planner() {
     setDraft(newProg); // Show draft for editing before saving
   };
 
+  const handleAutoGenerate = () => {
+    const optimalDays = ['Lundi', 'Mercredi', 'Vendredi'];
+    setSelectedDays(optimalDays);
+    const newProg = generateProgram(optimalDays, '18:00', cycle);
+    setHour('18:00');
+    setDraft(newProg);
+  };
+
   const handleSaveDraft = () => {
     if (!draft) return;
     const saved = db.addProgram(draft);
@@ -125,16 +133,33 @@ export default function Planner() {
             />
           </div>
 
-          <motion.button
-            whileHover={{ scale: selectedDays.length > 0 ? 1.02 : 1 }}
-            whileTap={{ scale: selectedDays.length > 0 ? 0.98 : 1 }}
-            onClick={handleGenerate}
-            disabled={selectedDays.length === 0}
-            className="w-full bg-brand-accent text-[#F0EBE2] font-bold py-4 rounded-2xl flex items-center justify-center gap-2 uppercase tracking-widest text-sm disabled:opacity-40 disabled:cursor-not-allowed shadow-[0_4px_20px_rgba(204,70,12,0.3)] transition-all"
-          >
-            <Sparkles size={18} />
-            Générer
-          </motion.button>
+          <div className="flex flex-col gap-3">
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={handleAutoGenerate}
+              className="w-full bg-brand-text text-brand-bg font-bold py-4 rounded-2xl flex items-center justify-center gap-2 uppercase tracking-widest text-sm shadow-[0_4px_20px_rgba(5,4,3,0.2)] transition-all"
+            >
+              <Sparkles size={18} className="text-brand-accent" />
+              Générer la Semaine Optimale
+            </motion.button>
+            
+            <div className="flex items-center gap-3 py-2">
+              <div className="flex-1 h-px bg-brand-border/40" />
+              <span className="text-[9px] uppercase tracking-widest text-brand-text/40 font-bold">ou manuel</span>
+              <div className="flex-1 h-px bg-brand-border/40" />
+            </div>
+
+            <motion.button
+              whileHover={{ scale: selectedDays.length > 0 ? 1.02 : 1 }}
+              whileTap={{ scale: selectedDays.length > 0 ? 0.98 : 1 }}
+              onClick={handleGenerate}
+              disabled={selectedDays.length === 0}
+              className="w-full bg-brand-bg border border-brand-border text-brand-text font-bold py-4 rounded-2xl flex items-center justify-center gap-2 uppercase tracking-widest text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+            >
+              Générer
+            </motion.button>
+          </div>
         </motion.div>
 
         {/* Draft Editor */}

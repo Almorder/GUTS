@@ -20,8 +20,8 @@ export default function SkillCard({ skill, onClick }: SkillCardProps) {
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
       onClick={onClick}
-      className={`border p-4 rounded-2xl transition-all duration-300 group cursor-pointer shadow-sm ${
-        isMaxed ? 'border-brand-accent/30 bg-brand-accent/5' : 'border-brand-border/40 bg-brand-bg/60 hover:border-brand-border'
+      className={`border p-4 rounded-2xl transition-all duration-300 group cursor-pointer ${
+        isMaxed ? 'border-brand-accent/50 bg-brand-accent/10 shadow-[0_0_20px_rgba(204,70,12,0.15)]' : 'border-brand-border/40 bg-brand-bg/60 hover:border-brand-border shadow-sm'
       }`}
       style={{ WebkitTapHighlightColor: 'transparent' }}
     >

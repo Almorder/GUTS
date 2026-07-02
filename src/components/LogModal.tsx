@@ -3,6 +3,7 @@ import { db } from '../lib/db';
 import type { CycleType, Movement, Mechanic, Level, SubSet } from '../lib/db';
 import { X, Plus, Trash2, Timer, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { haptic } from '../lib/haptics';
 
 export interface LogModalConfig {
   isOpen: boolean;
@@ -85,6 +86,7 @@ export default function LogModal({ config, onClose, onSave }: LogModalProps) {
       sets: subsets,
     });
     
+    haptic.success();
     setSaved(true);
     setTimeout(() => {
       onSave();
@@ -97,7 +99,7 @@ export default function LogModal({ config, onClose, onSave }: LogModalProps) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="absolute inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-xl"
         onClick={onClose}
       />
 
@@ -302,7 +304,10 @@ export default function LogModal({ config, onClose, onSave }: LogModalProps) {
                 <motion.button
                   whileTap={{ scale: 0.8 }}
                   key={i}
-                  onClick={() => setEnergy(i + 1)}
+                  onClick={() => {
+                    setEnergy(i + 1);
+                    haptic.light();
+                  }}
                   className={`flex-1 h-full rounded-md transition-colors duration-200 ${
                     i < energy
                       ? energy >= 8 ? 'bg-brand-accent' : energy >= 5 ? 'bg-brand-text' : 'bg-brand-text/60'
@@ -395,7 +400,10 @@ function MetricAdjuster({ label, value, onChange, step, format, hasTimer }: { la
       <div className="flex items-center gap-3">
         <motion.button
           whileTap={{ scale: 0.9 }}
-          onClick={() => onChange(value - step)}
+          onClick={() => {
+            onChange(value - step);
+            haptic.light();
+          }}
           className="w-11 h-11 flex items-center justify-center rounded-xl bg-brand-bg border border-brand-border/50 text-xl font-medium shadow-sm"
           style={{ WebkitTapHighlightColor: 'transparent' }}
         >
@@ -411,7 +419,10 @@ function MetricAdjuster({ label, value, onChange, step, format, hasTimer }: { la
         </motion.span>
         <motion.button
           whileTap={{ scale: 0.9 }}
-          onClick={() => onChange(value + step)}
+          onClick={() => {
+            onChange(value + step);
+            haptic.light();
+          }}
           className="w-11 h-11 flex items-center justify-center rounded-xl bg-brand-bg border border-brand-border/50 text-xl font-medium shadow-sm"
           style={{ WebkitTapHighlightColor: 'transparent' }}
         >

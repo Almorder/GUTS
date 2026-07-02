@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { X, Check } from 'lucide-react';
 import { db } from '../lib/db';
+import { haptic } from '../lib/haptics';
 import type { Skill } from '../lib/progression';
 
 interface QuickUpdateProps {
@@ -39,6 +40,7 @@ export default function QuickUpdateModal({ skill, onClose, onSave }: QuickUpdate
       }]
     });
 
+    haptic.success();
     setSaved(true);
     setTimeout(() => {
       onSave();
@@ -51,7 +53,7 @@ export default function QuickUpdateModal({ skill, onClose, onSave }: QuickUpdate
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="absolute inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-xl"
         onClick={onClose}
       />
 
@@ -80,7 +82,10 @@ export default function QuickUpdateModal({ skill, onClose, onSave }: QuickUpdate
           <div className="flex items-center gap-4">
             <motion.button
               whileTap={{ scale: 0.9 }}
-              onClick={() => setValue(Math.max(0, value - 1))}
+              onClick={() => {
+                setValue(Math.max(0, value - 1));
+                haptic.light();
+              }}
               className="w-12 h-12 flex items-center justify-center rounded-xl bg-brand-bg border border-brand-border/50 text-2xl font-medium shadow-sm"
             >
               -
@@ -94,7 +99,11 @@ export default function QuickUpdateModal({ skill, onClose, onSave }: QuickUpdate
 
             <motion.button
               whileTap={{ scale: 0.9 }}
-              onClick={() => setValue(value + 1)}
+              onClick={() => {
+                setValue(value + 1);
+                haptic.light();
+                if (nextTarget > 0 && value + 1 === nextTarget) haptic.success();
+              }}
               className="w-12 h-12 flex items-center justify-center rounded-xl bg-brand-bg border border-brand-border/50 text-2xl font-medium shadow-sm"
             >
               +

@@ -306,3 +306,24 @@ function parseISOWeek(weekStr: string): Date {
   d.setDate(d.getDate() - ((d.getDay() + 6) % 7) + (week - 1) * 7);
   return d;
 }
+
+export function getReadinessScore(logs: TrainingLog[]): number {
+  if (logs.length === 0) return 10;
+  const recentLogs = [...logs].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  
+  const now = new Date();
+  const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
+  
+  const last3DaysLogs = recentLogs.filter(l => new Date(l.created_at) >= threeDaysAgo);
+  
+  if (last3DaysLogs.length === 0) return 10; // Fully rested
+  
+  const avgEnergy = last3DaysLogs.reduce((acc, l) => acc + l.energy_level, 0) / last3DaysLogs.length;
+  return Math.round(avgEnergy);
+}
+
+export function getReadinessText(score: number): string {
+  if (score >= 8) return "Excellente forme. C'est le moment de tenter des PRs ou d'augmenter le volume.";
+  if (score >= 5) return "Forme modérée. Séance classique, concentre-toi sur l'exécution.";
+  return "Fatigue détectée. Privilégie une séance de décharge ou du travail technique léger.";
+}
