@@ -7,6 +7,7 @@ import { Trash2, Filter } from 'lucide-react';
 interface DashboardProps {
   logs: TrainingLog[];
   onDelete?: (id: string) => void;
+  onEdit?: (log: TrainingLog) => void;
 }
 
 const containerVariants: Variants = {
@@ -23,7 +24,7 @@ const itemVariants: Variants = {
   exit: { opacity: 0, scale: 0.9, transition: { duration: 0.2 } }
 };
 
-export default function Dashboard({ logs, onDelete }: DashboardProps) {
+export default function Dashboard({ logs, onDelete, onEdit }: DashboardProps) {
   const [filter, setFilter] = useState<'All' | 'Exam' | 'Force'>('All');
   
   const recentLogs = logs
@@ -93,7 +94,7 @@ export default function Dashboard({ logs, onDelete }: DashboardProps) {
                 <AnimatePresence>
                   {dayLogs.map(log => (
                     <motion.div key={log.id} variants={itemVariants} layout exit="exit">
-                      <LogCard log={log} onDelete={() => onDelete?.(log.id)} />
+                      <LogCard log={log} onDelete={() => onDelete?.(log.id)} onEdit={() => onEdit?.(log)} />
                     </motion.div>
                   ))}
                 </AnimatePresence>
@@ -114,7 +115,7 @@ function formatPerformance(s: SubSet) {
   return parts.join(' ') || '0';
 }
 
-function LogCard({ log, onDelete }: { log: TrainingLog, onDelete: () => void }) {
+function LogCard({ log, onDelete, onEdit }: { log: TrainingLog, onDelete: () => void, onEdit: () => void }) {
   const movementColors: Record<string, string> = {
     'Front Lever': '🔒',
     'Planche': '🔥',
@@ -134,8 +135,9 @@ function LogCard({ log, onDelete }: { log: TrainingLog, onDelete: () => void }) 
 
   return (
     <motion.div
+      onClick={onEdit}
       whileHover={{ scale: 1.01 }}
-      className={`relative group flex items-start gap-4 p-4 border rounded-2xl transition-all duration-300 shadow-sm ${
+      className={`relative group flex items-start gap-4 p-4 border rounded-2xl transition-all duration-300 shadow-sm cursor-pointer ${
         log.is_exam ? 'border-brand-accent/50 bg-brand-accent/5' : 'border-brand-border/40 bg-brand-bg hover:border-brand-border/80'
       }`}
     >

@@ -7,7 +7,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Trophy, Activity, Flame, Medal, X as CloseIcon } from 'lucide-react';
 import Dashboard from '../components/Dashboard';
 
-export default function Stats() {
+interface StatsProps {
+  onEditLog?: (log: TrainingLog) => void;
+}
+
+export default function Stats({ onEditLog }: StatsProps) {
   const [logs, setLogs] = useState<TrainingLog[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
@@ -143,7 +147,11 @@ export default function Stats() {
                   </button>
                 </div>
                 <div className="max-h-80 overflow-y-auto custom-scrollbar pr-2">
-                  <Dashboard logs={logs.filter(l => new Date(l.created_at).toDateString() === selectedDate.toDateString())} />
+                  <Dashboard 
+                    logs={logs.filter(l => new Date(l.created_at).toDateString() === selectedDate.toDateString())} 
+                    onDelete={(id) => { db.deleteLog(id); setLogs(db.getLogs()); }}
+                    onEdit={onEditLog}
+                  />
                 </div>
               </motion.div>
             )}

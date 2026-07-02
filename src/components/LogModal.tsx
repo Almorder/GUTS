@@ -13,6 +13,7 @@ export interface LogModalConfig {
   mechanic?: Mechanic;
   targetUnit?: 's' | 'reps';
   targetValue?: number;
+  initialLog?: import('../lib/db').TrainingLog;
 }
 
 interface LogModalProps {
@@ -29,13 +30,24 @@ const LEVELS: Level[] = ['Tuck', 'Adv Tuck', 'Half Lay', 'Full'];
 const PRESET_TAGS = ['🔥 Forme Parfaite', '💨 Souffle Court', '🏋️ Lourd', '💥 Échec', '🔴 Lombaire', '🔴 Poignet', '💪 Elastique'];
 
 export default function LogModal({ config, onClose, onSave }: LogModalProps) {
-  const [cycleType, setCycleType] = useState<CycleType>('Force');
-  const [energy, setEnergy] = useState<number>(7);
-  const [tags, setTags] = useState<string[]>([]);
-  const [isExam, setIsExam] = useState(config?.isExam || false);
+  const [cycleType, setCycleType] = useState<CycleType>(config?.initialLog?.cycle_type || 'Force');
+  const [energy, setEnergy] = useState<number>(config?.initialLog?.energy_level || 7);
+  const [tags, setTags] = useState<string[]>(config?.initialLog?.tags || []);
+  const [isExam, setIsExam] = useState(config?.initialLog ? config.initialLog.is_exam : (config?.isExam || false));
   const [saved, setSaved] = useState(false);
 
   const [subsets, setSubsets] = useState<SubSet[]>(() => {
+    if (config?.initialLog?.sets) {
+      return [...config.initialLog.sets];
+    }
+    if (config?.initialLog) { // Legacy fallback
+      return [{
+        movement: config.initialLog.movement || 'Front Lever',
+        mechanic: config.initialLog.mechanic || 'Hold',
+        level: config.initialLog.level || 'Full',
+        reps: 0, duration: 0, weight: 0
+      }];
+    }
     if (config?.movement) {
       return [{
         movement: config.movement,
@@ -46,7 +58,7 @@ export default function LogModal({ config, onClose, onSave }: LogModalProps) {
         weight: 0
       }];
     }
-    return [{ movement: 'Front Lever', mechanic: 'Hold', level: 'Full', reps: 0, duration: 0, weight: 0 }];
+    return [{ movement: 'Front Lever', mechanic: 'Hold', level: 'Full', reps: 0, duration: 0, weight: 0, targetRest: 0 }];
   });
 
   const [activeSetIndex, setActiveSetIndex] = useState(0);
@@ -78,13 +90,23 @@ export default function LogModal({ config, onClose, onSave }: LogModalProps) {
     const isValid = subsets.some(s => (s.reps || 0) > 0 || (s.duration || 0) > 0);
     if (!isValid) return;
 
-    db.addLog({
-      cycle_type: cycleType,
-      is_exam: isExam,
-      energy_level: energy,
-      tags,
-      sets: subsets,
-    });
+    if (config?.initialLog) {
+      db.updateLog(config.initialLog.id, {
+        cycle_type: cycleType,
+        is_exam: isExam,
+        energy_level: energy,
+        tags,
+        sets: subsets,
+      });
+    } else {
+      db.addLog({
+        cycle_type: cycleType,
+        is_exam: isExam,
+        energy_level: energy,
+        tags,
+        sets: subsets,
+      });
+    }
     
     haptic.success();
     setSaved(true);
@@ -116,16 +138,20 @@ export default function LogModal({ config, onClose, onSave }: LogModalProps) {
 
         <div className="flex items-center justify-between px-5 py-3 shrink-0">
           <div className="flex items-center gap-3">
-            <h2 className="font-serif font-bold text-2xl tracking-tight">{isExam ? '🎓 Examen' : 'Smart Log'}</h2>
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setIsExam(!isExam)}
-              className={`px-3 py-1.5 rounded-full text-[10px] uppercase tracking-widest font-bold transition-all ${
-                isExam ? 'bg-brand-accent text-[#F0EBE2] shadow-lg shadow-brand-accent/20' : 'border border-brand-border text-brand-text/50 bg-brand-text/5'
-              }`}
-            >
-              🎓 Mode Exam
-            </motion.button>
+            <h2 className="font-serif font-bold text-2xl tracking-tight">
+              {config?.initialLog ? 'Éditer Session' : (isExam ? '🎓 Examen' : 'Smart Log')}
+            </h2>
+            {!config?.initialLog && (
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setIsExam(!isExam)}
+                className={`px-3 py-1.5 rounded-full text-[10px] uppercase tracking-widest font-bold transition-all ${
+                  isExam ? 'bg-brand-accent text-[#F0EBE2] shadow-lg shadow-brand-accent/20' : 'border border-brand-border text-brand-text/50 bg-brand-text/5'
+                }`}
+              >
+                🎓 Mode Exam
+              </motion.button>
+            )}
           </div>
           <button onClick={onClose} className="p-2 -mr-2 bg-brand-text/5 rounded-full text-brand-text/60 hover:text-brand-text hover:bg-brand-text/10 transition-colors">
             <X size={20} />
@@ -189,6 +215,7 @@ export default function LogModal({ config, onClose, onSave }: LogModalProps) {
                       {set.reps ? <span className="bg-brand-accent/10 px-2 py-0.5 rounded-md">{set.reps}r</span> : null}
                       {set.duration ? <span className="bg-brand-accent/10 px-2 py-0.5 rounded-md">{set.duration}s</span> : null}
                       {set.weight ? <span className="bg-brand-accent/10 px-2 py-0.5 rounded-md">{set.weight > 0 ? `+${set.weight}` : set.weight}kg</span> : null}
+                      {set.targetRest ? <span className="bg-blue-500/10 text-blue-500 px-2 py-0.5 rounded-md">Rest {set.targetRest}s</span> : null}
                       {!set.reps && !set.duration && !set.weight && <span className="text-brand-text/30">0</span>}
                     </div>
                   </motion.div>
@@ -266,6 +293,13 @@ export default function LogModal({ config, onClose, onSave }: LogModalProps) {
                     onChange={(v) => updateActiveSet({ weight: v })}
                     step={2.5}
                     format={(v) => v > 0 ? `+${v}` : `${v}`}
+                  />
+                  <MetricAdjuster
+                    label="Repos (sec)"
+                    value={activeSet.targetRest || 0}
+                    onChange={(v) => updateActiveSet({ targetRest: Math.max(0, v) })}
+                    step={30}
+                    format={(v) => `${v}s`}
                   />
                 </div>
               </div>

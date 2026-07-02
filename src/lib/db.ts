@@ -70,6 +70,15 @@ export const db = {
     return newLog;
   },
 
+  updateLog: (id: string, updatedFields: Partial<TrainingLog>): void => {
+    const logs = db.getLogs();
+    const index = logs.findIndex(l => l.id === id);
+    if (index !== -1) {
+      logs[index] = { ...logs[index], ...updatedFields };
+      localStorage.setItem(LOGS_KEY, JSON.stringify(logs));
+    }
+  },
+
   deleteLog: (id: string): void => {
     const logs = db.getLogs().filter(l => l.id !== id);
     localStorage.setItem(LOGS_KEY, JSON.stringify(logs));

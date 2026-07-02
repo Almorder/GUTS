@@ -22,6 +22,7 @@ export interface LogModalConfig {
   mechanic?: Mechanic;
   targetUnit?: 's' | 'reps';
   targetValue?: number;
+  initialLog?: import('./lib/db').TrainingLog;
 }
 
 const pageVariants = {
@@ -67,9 +68,9 @@ function App() {
       <div className="flex-1 overflow-y-auto">
         <AnimatePresence mode="wait">
           <Routes location={location} key={location.pathname}>
-            <Route path="/" element={<PageWrapper><Home logs={logs} onRefresh={refreshLogs} /></PageWrapper>} />
+            <Route path="/" element={<PageWrapper><Home logs={logs} onRefresh={refreshLogs} onEditLog={(log) => setModalConfig({ isOpen: true, initialLog: log })} /></PageWrapper>} />
             <Route path="/roadmap" element={<PageWrapper><Roadmap openLogger={(c) => setModalConfig({ ...c, isOpen: true })} /></PageWrapper>} />
-            <Route path="/stats" element={<PageWrapper><Stats /></PageWrapper>} />
+            <Route path="/stats" element={<PageWrapper><Stats onEditLog={(log) => setModalConfig({ isOpen: true, initialLog: log })} /></PageWrapper>} />
             <Route path="/planner" element={<PageWrapper><Planner /></PageWrapper>} />
             <Route path="/settings" element={<PageWrapper><Settings /></PageWrapper>} />
           </Routes>

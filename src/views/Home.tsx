@@ -13,22 +13,16 @@ import ExamModal from '../components/ExamModal';
 interface HomeProps {
   logs: TrainingLog[];
   onRefresh?: () => void;
+  onEditLog?: (log: TrainingLog) => void;
 }
 
-export default function Home({ logs, onRefresh }: HomeProps) {
+export default function Home({ logs, onRefresh, onEditLog }: HomeProps) {
   const [selectedSkill, setSelectedSkill] = useState<any>(null);
   const [isExamModalOpen, setIsExamModalOpen] = useState(false);
 
   const skills = buildSkills(logs);
   const examAvailable = skills.some(s => s.isExamAvailable);
   const readiness = getReadinessScore(logs);
-
-  const handleDeleteLog = (id: string) => {
-    if (window.confirm("Supprimer ce log définitivement ?")) {
-      db.deleteLog(id);
-      if (onRefresh) onRefresh();
-    }
-  };
 
   return (
     <div className="flex flex-col gap-2">
@@ -86,8 +80,15 @@ export default function Home({ logs, onRefresh }: HomeProps) {
           <span className="text-[10px] uppercase tracking-[0.3em] text-brand-text/40 font-bold bg-brand-bg px-2 rounded">Activité Récente</span>
           <div className="flex-1 h-px bg-brand-border/40" />
         </div>
-
-        <Dashboard logs={logs} onDelete={handleDeleteLog} />
+        
+        <Dashboard 
+          logs={logs} 
+          onDelete={(id) => {
+            db.deleteLog(id);
+            if (onRefresh) onRefresh();
+          }}
+          onEdit={onEditLog}
+        />
       </div>
 
       <AnimatePresence>
