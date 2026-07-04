@@ -211,7 +211,56 @@ export function buildSkills(logs: TrainingLog[]): Skill[] {
 }
 
 // ─────────────────────────────────────────────────────────────
-// XP & Level System
+// 1RM (Street Lifting) Mathematics
+// ─────────────────────────────────────────────────────────────
+
+export function calculate1RM(reps: number, addedWeight: number, bodyweight: number): number {
+  if (reps <= 0) return 0;
+  const totalWeight = bodyweight + (addedWeight || 0);
+  if (reps === 1) return totalWeight;
+  return totalWeight * (1 + (reps / 30));
+}
+
+export function calculateTargetWeight(
+  oneRM: number, 
+  percentage: number, 
+  targetReps: number, 
+  bodyweight: number
+): number {
+  if (oneRM <= 0) return 0;
+  // target 1RM for this set
+  const targetIntensityWeight = oneRM * percentage;
+  // Epley inverse to find total weight needed to perform targetReps
+  const totalWeightNeeded = targetIntensityWeight / (1 + (targetReps / 30));
+  // The weight to add to the belt (can be negative, meaning elastic assistance needed)
+  const addedWeight = totalWeightNeeded - bodyweight;
+  
+  // Round to nearest 0.5kg
+  return Math.round(addedWeight * 2) / 2;
+}
+
+export function getBest1RM(
+  logs: TrainingLog[],
+  movement: string,
+  mechanic: string,
+  bodyweight: number
+): number {
+  let max1RM = 0;
+  for (const log of logs) {
+    if (log.sets && log.sets.length > 0) {
+      for (const set of log.sets) {
+        if (set.movement === movement && set.mechanic === mechanic) {
+          const rm = calculate1RM(set.reps || 0, set.weight || 0, bodyweight);
+          if (rm > max1RM) max1RM = rm;
+        }
+      }
+    }
+  }
+  return max1RM;
+}
+
+// ─────────────────────────────────────────────────────────────
+// Logic
 // ─────────────────────────────────────────────────────────────
 export function calculateXP(logs: TrainingLog[]): number {
   let xp = 0;

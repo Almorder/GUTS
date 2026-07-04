@@ -271,7 +271,8 @@ export default function Planner() {
                             const groups = new Map<string, { sets: number, target: string, hasAmrap: boolean }>();
                             session.structured_focus.forEach(set => {
                               if (!groups.has(set.movement)) {
-                                const targetStr = set.targetDuration ? `${set.targetDuration}s` : (set.targetReps ? `${set.targetReps}r` : '');
+                                let targetStr = set.targetDuration ? `${set.targetDuration}s` : (set.targetReps ? `${set.targetReps}r` : '');
+                                if (set.targetWeight) targetStr += ` @ ${set.targetWeight > 0 ? '+' : ''}${set.targetWeight}kg`;
                                 groups.set(set.movement, { sets: 1, target: targetStr, hasAmrap: !!set.isAmrap });
                               } else {
                                 groups.get(set.movement)!.sets += 1;

@@ -1,5 +1,6 @@
+import { db } from './db';
 import type { TrainingProgram, CycleType, SubSet, TrainingLog, Level, BodyState } from './db';
-import { getBestPerformance } from './progression';
+import { getBestPerformance, getBest1RM, calculateTargetWeight } from './progression';
 
 // Detect user's best level for a movement by checking which levels have logged data
 function getBestLevel(logs: TrainingLog[], movement: string, mechanic: string, unit: 's'|'reps'): Level {
@@ -32,7 +33,13 @@ export function generateProgram(
   const isDeload = readinessScore < 5;
   const scale = isDeload ? 0.6 : 1; // 40% reduction in intensity/volume if fatigued
   
-  const intensity = (isForce ? 0.50 : isVolume ? 0.70 : 0.40) * scale;
+  const bw = db.getUserWeight();
+
+  // Isometrics vs Dynamics scaling
+  const intensityHold = (isForce ? 0.50 : isVolume ? 0.70 : 0.40) * scale;
+  const intensityDyn = (isForce ? 0.85 : isVolume ? 0.65 : 0.50) * scale;
+  
+  const dynTargetReps = isForce ? 5 : isVolume ? 8 : 6;
   
   // Split rest times for Isometrics vs Dynamics
   const restHoldMain = isForce ? 240 : isVolume ? 180 : 120;
@@ -48,7 +55,6 @@ export function generateProgram(
   const buildDay1 = (): SubSet[] => {
     const flLevel = getBestLevel(logs, 'Front Lever', 'Hold', 's');
     const prFL = getPR('Front Lever', 'Hold', 's', flLevel);
-    const prPull = getPR('Tractions', 'Pull', 'reps');
     
     const sets: SubSet[] = [];
     
@@ -60,17 +66,20 @@ export function generateProgram(
     for(let i=0; i<setsMain; i++) {
       sets.push({
         movement: 'Front Lever', mechanic: 'Hold', level: flLevel,
-        duration: 0, targetDuration: Math.max(2, Math.round(prFL * intensity)),
+        duration: 0, targetDuration: Math.max(2, Math.round(prFL * intensityHold)),
         targetRest: restHoldMain,
         isAmrap: i === setsMain - 1
       });
     }
 
-    // Secondary Focus (Pullups)
+    // Secondary Focus (Pullups - Street Lifting Style)
+    const pull1RM = getBest1RM(logs, 'Tractions', 'Pull', bw);
+    const pullTargetWeight = calculateTargetWeight(pull1RM, intensityDyn, dynTargetReps, bw);
+    
     for(let i=0; i<setsSec; i++) {
       sets.push({
         movement: 'Tractions', mechanic: 'Pull', level: 'Full',
-        reps: 0, targetReps: Math.max(3, Math.round(prPull * intensity)),
+        reps: 0, targetReps: dynTargetReps, targetWeight: pullTargetWeight,
         targetRest: restDynSec,
         isAmrap: i === setsSec - 1
       });
@@ -89,7 +98,6 @@ export function generateProgram(
   const buildDay2 = (): SubSet[] => {
     const plLevel = getBestLevel(logs, 'Planche', 'Hold', 's');
     const prPlanche = getPR('Planche', 'Hold', 's', plLevel);
-    const prDips = getPR('Dips', 'Push', 'reps');
     
     const sets: SubSet[] = [];
     
@@ -99,16 +107,19 @@ export function generateProgram(
     for(let i=0; i<setsMain; i++) {
       sets.push({
         movement: 'Planche', mechanic: 'Hold', level: plLevel,
-        duration: 0, targetDuration: Math.max(2, Math.round(prPlanche * intensity)),
+        duration: 0, targetDuration: Math.max(2, Math.round(prPlanche * intensityHold)),
         targetRest: restHoldMain,
         isAmrap: i === setsMain - 1
       });
     }
 
+    const dips1RM = getBest1RM(logs, 'Dips', 'Push', bw);
+    const dipsTargetWeight = calculateTargetWeight(dips1RM, intensityDyn, dynTargetReps, bw);
+
     for(let i=0; i<setsSec; i++) {
       sets.push({
         movement: 'Dips', mechanic: 'Push', level: 'Full',
-        reps: 0, targetReps: Math.max(5, Math.round(prDips * intensity)),
+        reps: 0, targetReps: dynTargetReps, targetWeight: dipsTargetWeight,
         targetRest: restDynSec,
         isAmrap: i === setsSec - 1
       });
@@ -121,12 +132,10 @@ export function generateProgram(
     return sets;
   };
 
-  // Day 3 Template: Handstand & Mix
+  // Day 3 Template: Handstand & Basics
   const buildDay3 = (): SubSet[] => {
     const hsLevel = getBestLevel(logs, 'Handstand', 'Hold', 's');
     const prHS = getPR('Handstand', 'Hold', 's', hsLevel);
-    const prPull = getPR('Tractions', 'Pull', 'reps');
-    const prDips = getPR('Dips', 'Push', 'reps');
     
     const sets: SubSet[] = [];
     
@@ -137,22 +146,27 @@ export function generateProgram(
     for(let i=0; i<setsMain; i++) {
       sets.push({
         movement: 'Handstand', mechanic: 'Hold', level: hsLevel,
-        duration: 0, targetDuration: Math.max(5, Math.round(prHS * intensity)),
+        duration: 0, targetDuration: Math.max(5, Math.round(prHS * intensityHold)),
         targetRest: restHoldMain,
         isAmrap: i === setsMain - 1
       });
     }
 
-    // Dynamic targets based on PR instead of hardcoded 8 and 10
+    const pull1RM = getBest1RM(logs, 'Tractions', 'Pull', bw);
+    const pullTargetWeight = calculateTargetWeight(pull1RM, intensityDyn, dynTargetReps, bw);
+    
+    const dips1RM = getBest1RM(logs, 'Dips', 'Push', bw);
+    const dipsTargetWeight = calculateTargetWeight(dips1RM, intensityDyn, dynTargetReps, bw);
+
     for(let i=0; i<setsSec; i++) {
       sets.push({ 
         movement: 'Tractions', mechanic: 'Pull', level: 'Full', 
-        reps: 0, targetReps: Math.max(3, Math.round(prPull * intensity)), 
+        reps: 0, targetReps: dynTargetReps, targetWeight: pullTargetWeight, 
         isSuperSet: true, isAmrap: i === setsSec - 1 
       });
       sets.push({ 
         movement: 'Dips', mechanic: 'Push', level: 'Full', 
-        reps: 0, targetReps: Math.max(4, Math.round(prDips * intensity)), 
+        reps: 0, targetReps: dynTargetReps, targetWeight: dipsTargetWeight, 
         targetRest: restDynMain, isAmrap: i === setsSec - 1 
       });
     }

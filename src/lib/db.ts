@@ -65,11 +65,25 @@ const LOGS_KEY = 'NolanArc_TrainingLogs';
 const PROGRAMS_KEY = 'NolanArc_Programs';
 const CHANGELOG_KEY = 'NolanArc_Changelog';
 const BODY_STATE_KEY = 'NolanArc_BodyState';
+const USER_WEIGHT_KEY = 'NolanArc_UserWeight';
 
 export const db = {
   getLogs: (): TrainingLog[] => {
     const data = localStorage.getItem(LOGS_KEY);
     return data ? JSON.parse(data) : [];
+  },
+
+  getUserWeight: (): number => {
+    try {
+      const data = localStorage.getItem(USER_WEIGHT_KEY);
+      return data ? parseFloat(data) : 75; // Default 75kg
+    } catch {
+      return 75;
+    }
+  },
+
+  saveUserWeight: (weight: number): void => {
+    localStorage.setItem(USER_WEIGHT_KEY, weight.toString());
   },
 
   getBodyState: (): BodyState => {

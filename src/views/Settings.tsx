@@ -1,11 +1,24 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { db } from '../lib/db';
 import ExportUtility from '../components/ExportUtility';
-import { Moon, Sun, ShieldAlert, Database, RefreshCw, Smartphone } from 'lucide-react';
+import { Moon, Sun, ShieldAlert, Database, RefreshCw, Smartphone, User, Save } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function Settings() {
   const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
   const [resetConfirm, setResetConfirm] = useState(false);
+  const [weight, setWeight] = useState<string>('75');
+
+  useEffect(() => {
+    setWeight(db.getUserWeight().toString());
+  }, []);
+
+  const handleSaveWeight = () => {
+    const w = parseFloat(weight);
+    if (!isNaN(w) && w > 0) {
+      db.saveUserWeight(w);
+    }
+  };
 
   const toggleDarkMode = () => {
     const next = !isDark;
@@ -70,6 +83,43 @@ export default function Settings() {
                 {isDark ? <Moon size={12} className="text-brand-accent" /> : <Sun size={12} className="text-brand-border" />}
               </motion.div>
             </button>
+          </div>
+        </motion.div>
+
+        {/* Profil Athlète */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+          className="bg-brand-bg border border-brand-border/50 rounded-3xl p-5 shadow-sm"
+        >
+          <div className="flex items-center gap-2 mb-5">
+            <User size={18} className="text-brand-text" />
+            <h3 className="text-[10px] uppercase font-bold tracking-widest text-brand-text/60">Profil Athlète</h3>
+          </div>
+          
+          <div className="flex flex-col gap-4">
+            <p className="text-xs text-brand-text/60 font-medium leading-relaxed">
+              Le poids de corps est utilisé par l'IA pour calculer ton 1RM exact et ajuster tes cycles de force et de volume.
+            </p>
+            <div className="flex gap-3 items-center">
+              <div className="flex-1 relative">
+                <input 
+                  type="number" 
+                  value={weight} 
+                  onChange={(e) => setWeight(e.target.value)}
+                  className="w-full bg-brand-text/5 border border-brand-border/40 rounded-xl p-3 text-sm font-bold text-brand-text outline-none focus:border-brand-accent transition-colors"
+                  placeholder="75"
+                />
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-brand-text/40">kg</span>
+              </div>
+              <button 
+                onClick={handleSaveWeight}
+                className="bg-brand-accent text-brand-bg px-4 py-3 rounded-xl shadow-md transition-transform hover:scale-105 active:scale-95"
+              >
+                <Save size={18} />
+              </button>
+            </div>
           </div>
         </motion.div>
 
