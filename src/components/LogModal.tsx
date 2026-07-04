@@ -23,9 +23,9 @@ interface LogModalProps {
 }
 
 const CYCLE_TYPES: CycleType[] = ['Force', 'Volume', 'Décharge'];
-const MOVEMENTS: Movement[] = ['Front Lever', 'Planche', 'Handstand', 'Tractions', 'Dips', 'L-sit', 'Renforcement', 'Accessoire'];
-const MECHANICS: Mechanic[] = ['Hold', 'Pull', 'Negative', 'Raise'];
-const LEVELS: Level[] = ['Tuck', 'Adv Tuck', 'Half Lay', 'Full'];
+const MOVEMENTS: Movement[] = ['Front Lever', 'Planche', 'Handstand', 'Tractions', 'Dips', 'Muscle Up', 'L-sit', 'Renforcement', 'Scapular Pulls', 'Skin the Cat', 'Renforcement Core', 'Planche Lean', 'Accessoire'];
+const MECHANICS: Mechanic[] = ['Hold', 'Pull', 'Push', 'Negative', 'Raise'];
+const LEVELS: Level[] = ['Tuck', 'Adv Tuck', 'Straddle', 'Half Lay', 'Full', 'Base'];
 
 const PRESET_TAGS = ['🔥 Forme Parfaite', '💨 Souffle Court', '🏋️ Lourd', '💥 Échec', '🔴 Lombaire', '🔴 Poignet', '💪 Elastique'];
 

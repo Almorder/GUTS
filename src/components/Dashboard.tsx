@@ -196,7 +196,7 @@ function LogCard({ log, onDelete, onEdit }: { log: TrainingLog, onDelete: () => 
 
       <button 
         onClick={(e) => { e.stopPropagation(); onDelete(); }}
-        className="absolute top-2 right-2 p-2 text-brand-text/20 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+        className="absolute top-2 right-2 p-2 text-brand-text/20 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
       >
         <Trash2 size={16} />
       </button>

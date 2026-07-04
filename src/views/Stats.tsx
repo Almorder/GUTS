@@ -54,7 +54,8 @@ export default function Stats() {
   const flData = getGraphData('Front Lever', 'Hold', 'duration');
   const plData = getGraphData('Planche', 'Hold', 'duration');
   const hsData = getGraphData('Handstand', 'Hold', 'duration');
-  const pullData = getGraphData('Tractions', 'Pull', 'weight');
+  const pullData = getGraphData('Tractions', 'Pull', 'reps');
+  const dipsData = getGraphData('Dips', 'Push', 'reps');
 
   // --- Readiness Trend ---
   const energyData = [...logs]
@@ -69,17 +70,19 @@ export default function Stats() {
   const prs = useMemo(() => {
     let bestFl = 0;
     let bestPl = 0;
-    let maxPull = 0;
+    let bestPull = 0;
+    let bestDips = 0;
     logs.forEach(log => {
       if (log.sets) {
         log.sets.forEach(s => {
           if (s.movement === 'Front Lever' && s.mechanic === 'Hold' && s.duration) bestFl = Math.max(bestFl, s.duration);
           if (s.movement === 'Planche' && s.mechanic === 'Hold' && s.duration) bestPl = Math.max(bestPl, s.duration);
-          if (s.movement === 'Tractions' && s.mechanic === 'Pull' && s.weight) maxPull = Math.max(maxPull, s.weight);
+          if (s.movement === 'Tractions' && s.mechanic === 'Pull' && s.reps) bestPull = Math.max(bestPull, s.reps);
+          if (s.movement === 'Dips' && s.reps) bestDips = Math.max(bestDips, s.reps);
         });
       }
     });
-    return { bestFl, bestPl, maxPull };
+    return { bestFl, bestPl, bestPull, bestDips };
   }, [logs]);
 
   return (
@@ -92,10 +95,11 @@ export default function Stats() {
       <div className="flex flex-col gap-6">
 
         {/* PR Badges */}
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           <PRBadge icon={<Medal size={16} />} title="Best FL" value={`${prs.bestFl}s`} delay={0.1} />
           <PRBadge icon={<Flame size={16} />} title="Best PL" value={`${prs.bestPl}s`} delay={0.2} />
-          <PRBadge icon={<Trophy size={16} />} title="Max Pull" value={`+${prs.maxPull}kg`} delay={0.3} />
+          <PRBadge icon={<Trophy size={16} />} title="Max Pull" value={`${prs.bestPull}r`} delay={0.3} />
+          <PRBadge icon={<Activity size={16} />} title="Max Dips" value={`${prs.bestDips}r`} delay={0.4} />
         </div>
 
         {/* Weekly Volume */}
@@ -132,7 +136,10 @@ export default function Stats() {
         <ChartCard title="Handstand Hold (sec)" data={hsData} dataKey="value" color="#8f8c85" />
 
         {/* Chart 4: Weighted Pull */}
-        <ChartCard title="Weighted Pull (+kg)" data={pullData} dataKey="value" color="var(--brand-accent)" />
+        <ChartCard title="Tractions (reps)" data={pullData} dataKey="value" color="var(--brand-accent)" />
+
+        {/* Chart 5: Dips */}
+        <ChartCard title="Dips (reps)" data={dipsData} dataKey="value" color="#8f8c85" />
 
         {/* Chart 5: Readiness Trend */}
         <ChartCard title="Readiness Trend (Energy)" data={energyData} dataKey="energy" color="var(--brand-text)" hideYAxis />

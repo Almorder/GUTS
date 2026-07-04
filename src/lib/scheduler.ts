@@ -1,5 +1,15 @@
-import type { TrainingProgram, CycleType, SubSet, TrainingLog } from './db';
+import type { TrainingProgram, CycleType, SubSet, TrainingLog, Level } from './db';
 import { getBestPerformance } from './progression';
+
+// Detect user's best level for a movement by checking which levels have logged data
+function getBestLevel(logs: TrainingLog[], movement: string, mechanic: string, unit: 's'|'reps'): Level {
+  const levels: Level[] = ['Full', 'Straddle', 'Adv Tuck', 'Tuck'];
+  for (const level of levels) {
+    const best = getBestPerformance(logs, movement, mechanic, unit, level);
+    if (best > 0) return level;
+  }
+  return 'Tuck'; // Default to easiest
+}
 
 export function generateProgram(
   availableDays: string[], 
@@ -9,8 +19,9 @@ export function generateProgram(
   readinessScore: number
 ): Omit<TrainingProgram, 'id' | 'created_at'> {
   
-  // Helpers to get PRs
-  const getPR = (mov: string, mech: string, unit: 's'|'reps') => Math.max(1, getBestPerformance(logs, mov, mech, unit));
+  // Helpers to get PRs (searches across all levels if no level provided)
+  const getPR = (mov: string, mech: string, unit: 's'|'reps', level?: string) => 
+    Math.max(1, getBestPerformance(logs, mov, mech, unit, level));
 
   // Ratios
   const isForce = targetCycle === 'Force';
@@ -29,20 +40,20 @@ export function generateProgram(
 
   // Day 1 Template: Front Lever & Pullups
   const buildDay1 = (): SubSet[] => {
-    const prFL = getPR('Front Lever', 'Hold', 's');
+    const flLevel = getBestLevel(logs, 'Front Lever', 'Hold', 's');
+    const prFL = getPR('Front Lever', 'Hold', 's', flLevel);
     const prPull = getPR('Tractions', 'Pull', 'reps');
     
     const sets: SubSet[] = [];
     
     // Warmup
-    // Warmup
     sets.push({ movement: 'Scapular Pulls', mechanic: 'Pull', level: 'Base', reps: 15, targetRest: 60 });
     sets.push({ movement: 'Skin the Cat', mechanic: 'Pull', level: 'Base', reps: 5, targetRest: 60 });
     
-    // Main Focus (Front Lever)
+    // Main Focus (Front Lever at user's best level)
     for(let i=0; i<setsMain; i++) {
       sets.push({
-        movement: 'Front Lever', mechanic: 'Hold', level: 'Full',
+        movement: 'Front Lever', mechanic: 'Hold', level: flLevel,
         duration: 0, targetDuration: Math.max(2, Math.round(prFL * intensity)),
         targetRest: restMain
       });
@@ -68,8 +79,9 @@ export function generateProgram(
 
   // Day 2 Template: Planche & Dips
   const buildDay2 = (): SubSet[] => {
-    const prPlanche = getPR('Planche', 'Hold', 's');
-    const prDips = getPR('Dips', 'Pull', 'reps');
+    const plLevel = getBestLevel(logs, 'Planche', 'Hold', 's');
+    const prPlanche = getPR('Planche', 'Hold', 's', plLevel);
+    const prDips = getPR('Dips', 'Push', 'reps');
     
     const sets: SubSet[] = [];
     
@@ -77,7 +89,7 @@ export function generateProgram(
     
     for(let i=0; i<setsMain; i++) {
       sets.push({
-        movement: 'Planche', mechanic: 'Hold', level: 'Tuck',
+        movement: 'Planche', mechanic: 'Hold', level: plLevel,
         duration: 0, targetDuration: Math.max(2, Math.round(prPlanche * intensity)),
         targetRest: restMain
       });
@@ -85,7 +97,7 @@ export function generateProgram(
 
     for(let i=0; i<setsSec; i++) {
       sets.push({
-        movement: 'Dips', mechanic: 'Pull', level: 'Full',
+        movement: 'Dips', mechanic: 'Push', level: 'Full',
         reps: 0, targetReps: Math.max(5, Math.round(prDips * intensity)),
         targetRest: restSec
       });
@@ -100,13 +112,14 @@ export function generateProgram(
 
   // Day 3 Template: Handstand & Mix
   const buildDay3 = (): SubSet[] => {
-    const prHS = getPR('Handstand', 'Hold', 's');
+    const hsLevel = getBestLevel(logs, 'Handstand', 'Hold', 's');
+    const prHS = getPR('Handstand', 'Hold', 's', hsLevel);
     
     const sets: SubSet[] = [];
     
     for(let i=0; i<setsMain; i++) {
       sets.push({
-        movement: 'Handstand', mechanic: 'Hold', level: 'Full',
+        movement: 'Handstand', mechanic: 'Hold', level: hsLevel,
         duration: 0, targetDuration: Math.max(5, Math.round(prHS * intensity)),
         targetRest: restMain
       });
@@ -114,7 +127,7 @@ export function generateProgram(
 
     for(let i=0; i<setsSec; i++) {
       sets.push({ movement: 'Tractions', mechanic: 'Pull', level: 'Full', reps: 0, targetReps: 8, isSuperSet: true });
-      sets.push({ movement: 'Dips', mechanic: 'Pull', level: 'Full', reps: 0, targetReps: 10, targetRest: 120 });
+      sets.push({ movement: 'Dips', mechanic: 'Push', level: 'Full', reps: 0, targetReps: 10, targetRest: 120 });
     }
 
     return sets;

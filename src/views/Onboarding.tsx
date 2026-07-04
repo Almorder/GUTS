@@ -23,7 +23,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
       tags: ['🚀 Initial Baseline'],
       sets: [
         { movement: 'Tractions', mechanic: 'Pull', level: 'Full', reps: pulls, duration: 0, weight: 0 },
-        { movement: 'Dips', mechanic: 'Pull', level: 'Full', reps: dips, duration: 0, weight: 0 },
+        { movement: 'Dips', mechanic: 'Push', level: 'Full', reps: dips, duration: 0, weight: 0 },
         { movement: 'Front Lever', mechanic: 'Hold', level: 'Tuck', reps: 0, duration: fl, weight: 0 },
         { movement: 'Planche', mechanic: 'Hold', level: 'Tuck', reps: 0, duration: pl, weight: 0 }
       ]

@@ -46,8 +46,18 @@ interface ActiveSet extends SubSet {
 
 export default function ActiveSessionModal({ session, cycleType, onClose, onSave }: ActiveSessionProps) {
   const initialSets: ActiveSet[] = session.structured_focus && session.structured_focus.length > 0 
-    ? session.structured_focus.map(s => ({ ...s, targetReps: s.reps, targetDuration: s.duration, targetWeight: s.weight, reps: 0, duration: 0, weight: s.weight || 0 }))
-    : [{ movement: 'Front Lever' as any, mechanic: 'Hold' as any, level: 'Full' as any, reps: 0, duration: 0, weight: 0, targetDuration: 5 }];
+    ? session.structured_focus.map(s => ({
+        ...s,
+        // Preserve scheduler targets — DO NOT overwrite with s.reps/s.duration (which are 0)
+        targetReps: s.targetReps ?? s.reps ?? 0,
+        targetDuration: s.targetDuration ?? s.duration ?? 0,
+        targetWeight: s.targetWeight ?? s.weight ?? 0,
+        // Zero out actual performance (user will fill these in)
+        reps: 0,
+        duration: 0,
+        weight: s.weight || 0,
+      }))
+    : [{ movement: 'Front Lever' as any, mechanic: 'Hold' as any, level: 'Tuck' as any, reps: 0, duration: 0, weight: 0, targetDuration: 5 }];
 
   const [activeSets, setActiveSets] = useState<ActiveSet[]>(initialSets);
   const [currentIndex, setCurrentIndex] = useState(0);

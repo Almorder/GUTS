@@ -179,11 +179,17 @@ export function buildSkills(logs: TrainingLog[]): Skill[] {
       { label: 'Elite', target: 20, level: 'Full' },
       { label: 'Master', target: 25, level: 'Full' },
     ]),
-    createSkill('dips', 'Dips', '🔱', 'Parallel Bars', 'Dips', 'Pull', 'reps', [
+    createSkill('dips', 'Dips', '🔱', 'Parallel Bars', 'Dips', 'Push', 'reps', [
       { label: 'Base', target: 15, level: 'Full' },
       { label: 'Strong', target: 25, level: 'Full' },
       { label: 'Elite', target: 35, level: 'Full' },
       { label: 'Master', target: 45, level: 'Full' },
+    ]),
+    createSkill('muscleup', 'Muscle Up', '💥', 'Pull to Push', 'Muscle Up', 'Pull', 'reps', [
+      { label: 'Premier', target: 1, level: 'Full' },
+      { label: 'Base', target: 3, level: 'Full' },
+      { label: 'Strong', target: 5, level: 'Full' },
+      { label: 'Elite', target: 8, level: 'Full' },
     ])
   ];
 }
