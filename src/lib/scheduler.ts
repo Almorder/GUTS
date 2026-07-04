@@ -32,12 +32,17 @@ export function generateProgram(
   const isDeload = readinessScore < 5;
   const scale = isDeload ? 0.6 : 1; // 40% reduction in intensity/volume if fatigued
   
-  const intensity = (isForce ? 0.85 : isVolume ? 0.70 : 0.50) * scale;
-  const restMain = isForce ? 180 : isVolume ? 120 : 90;
-  const restSec = isForce ? 150 : isVolume ? 90 : 60;
+  const intensity = (isForce ? 0.50 : isVolume ? 0.70 : 0.40) * scale;
+  
+  // Split rest times for Isometrics vs Dynamics
+  const restHoldMain = isForce ? 240 : isVolume ? 180 : 120;
+  const restHoldSec = isForce ? 180 : isVolume ? 120 : 90;
+  
+  const restDynMain = isForce ? 180 : isVolume ? 120 : 90;
+  const restDynSec = isForce ? 150 : isVolume ? 90 : 60;
   
   const setsMain = Math.max(2, Math.floor((isForce ? 5 : isVolume ? 4 : 3) * scale));
-  const setsSec = Math.max(2, Math.floor((isForce ? 4 : isVolume ? 4 : 3) * scale));
+  const setsSec = Math.max(2, Math.floor((isForce ? 4 : isVolume ? 3 : 2) * scale));
 
   // Day 1 Template: Front Lever & Pullups
   const buildDay1 = (): SubSet[] => {
@@ -56,7 +61,7 @@ export function generateProgram(
       sets.push({
         movement: 'Front Lever', mechanic: 'Hold', level: flLevel,
         duration: 0, targetDuration: Math.max(2, Math.round(prFL * intensity)),
-        targetRest: restMain,
+        targetRest: restHoldMain,
         isAmrap: i === setsMain - 1
       });
     }
@@ -66,7 +71,7 @@ export function generateProgram(
       sets.push({
         movement: 'Tractions', mechanic: 'Pull', level: 'Full',
         reps: 0, targetReps: Math.max(3, Math.round(prPull * intensity)),
-        targetRest: restSec,
+        targetRest: restDynSec,
         isAmrap: i === setsSec - 1
       });
     }
@@ -88,13 +93,14 @@ export function generateProgram(
     
     const sets: SubSet[] = [];
     
+    sets.push({ movement: 'Mobilité Poignets', mechanic: 'Hold', level: 'Base', duration: 0, targetDuration: 60, targetRest: 30 });
     sets.push({ movement: 'Planche Lean', mechanic: 'Hold', level: 'Base', duration: 0, targetDuration: 20, targetRest: 60 });
     
     for(let i=0; i<setsMain; i++) {
       sets.push({
         movement: 'Planche', mechanic: 'Hold', level: plLevel,
         duration: 0, targetDuration: Math.max(2, Math.round(prPlanche * intensity)),
-        targetRest: restMain,
+        targetRest: restHoldMain,
         isAmrap: i === setsMain - 1
       });
     }
@@ -103,13 +109,13 @@ export function generateProgram(
       sets.push({
         movement: 'Dips', mechanic: 'Push', level: 'Full',
         reps: 0, targetReps: Math.max(5, Math.round(prDips * intensity)),
-        targetRest: restSec,
+        targetRest: restDynSec,
         isAmrap: i === setsSec - 1
       });
     }
 
     for(let i=0; i<3; i++) {
-      sets.push({ movement: 'Handstand', mechanic: 'Hold', level: 'Tuck', duration: 0, targetDuration: 15, targetRest: 90 });
+      sets.push({ movement: 'Handstand', mechanic: 'Hold', level: 'Tuck', duration: 0, targetDuration: 15, targetRest: restHoldSec });
     }
 
     return sets;
@@ -119,21 +125,36 @@ export function generateProgram(
   const buildDay3 = (): SubSet[] => {
     const hsLevel = getBestLevel(logs, 'Handstand', 'Hold', 's');
     const prHS = getPR('Handstand', 'Hold', 's', hsLevel);
+    const prPull = getPR('Tractions', 'Pull', 'reps');
+    const prDips = getPR('Dips', 'Push', 'reps');
     
     const sets: SubSet[] = [];
     
+    // Warmup
+    sets.push({ movement: 'Mobilité Poignets', mechanic: 'Hold', level: 'Base', duration: 0, targetDuration: 60, targetRest: 30 });
+    sets.push({ movement: 'Scapular Shrugs', mechanic: 'Hold', level: 'Base', reps: 15, targetRest: 60 });
+
     for(let i=0; i<setsMain; i++) {
       sets.push({
         movement: 'Handstand', mechanic: 'Hold', level: hsLevel,
         duration: 0, targetDuration: Math.max(5, Math.round(prHS * intensity)),
-        targetRest: restMain,
+        targetRest: restHoldMain,
         isAmrap: i === setsMain - 1
       });
     }
 
+    // Dynamic targets based on PR instead of hardcoded 8 and 10
     for(let i=0; i<setsSec; i++) {
-      sets.push({ movement: 'Tractions', mechanic: 'Pull', level: 'Full', reps: 0, targetReps: 8, isSuperSet: true, isAmrap: i === setsSec - 1 });
-      sets.push({ movement: 'Dips', mechanic: 'Push', level: 'Full', reps: 0, targetReps: 10, targetRest: 120, isAmrap: i === setsSec - 1 });
+      sets.push({ 
+        movement: 'Tractions', mechanic: 'Pull', level: 'Full', 
+        reps: 0, targetReps: Math.max(3, Math.round(prPull * intensity)), 
+        isSuperSet: true, isAmrap: i === setsSec - 1 
+      });
+      sets.push({ 
+        movement: 'Dips', mechanic: 'Push', level: 'Full', 
+        reps: 0, targetReps: Math.max(4, Math.round(prDips * intensity)), 
+        targetRest: restDynMain, isAmrap: i === setsSec - 1 
+      });
     }
 
     return sets;

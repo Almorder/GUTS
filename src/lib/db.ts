@@ -1,5 +1,5 @@
 export type CycleType = 'Force' | 'Volume' | 'Décharge';
-export type Movement = 'Front Lever' | 'Planche' | 'Handstand' | 'Tractions' | 'Dips' | 'Muscle Up' | 'L-sit' | 'Accessoire' | 'Renforcement' | 'Scapular Pulls' | 'Skin the Cat' | 'Renforcement Core' | 'Planche Lean';
+export type Movement = 'Front Lever' | 'Planche' | 'Handstand' | 'Tractions' | 'Dips' | 'Muscle Up' | 'L-sit' | 'Accessoire' | 'Renforcement' | 'Scapular Pulls' | 'Skin the Cat' | 'Renforcement Core' | 'Planche Lean' | 'Mobilité Poignets' | 'Scapular Shrugs' | 'Pistol Squats' | 'Nordic Curls';
 export type Mechanic = 'Hold' | 'Pull' | 'Push' | 'Negative' | 'Raise';
 export type Level = 'Tuck' | 'Adv Tuck' | 'Half Lay' | 'Full' | 'Straddle' | 'Base';
 
