@@ -37,6 +37,18 @@ export interface TrainingLog {
   energy_level: number;
 }
 
+export type MuscleGroup = 'lats' | 'shoulders' | 'chest' | 'core';
+export type SorenessLevel = 'NONE' | 'SORE' | 'PAIN';
+
+export type BodyState = Record<MuscleGroup, SorenessLevel>;
+
+export const DEFAULT_BODY_STATE: BodyState = {
+  lats: 'NONE',
+  shoulders: 'NONE',
+  chest: 'NONE',
+  core: 'NONE'
+};
+
 export interface TrainingProgram {
   id: string;
   created_at: string;
@@ -52,11 +64,25 @@ export interface TrainingProgram {
 const LOGS_KEY = 'NolanArc_TrainingLogs';
 const PROGRAMS_KEY = 'NolanArc_Programs';
 const CHANGELOG_KEY = 'NolanArc_Changelog';
+const BODY_STATE_KEY = 'NolanArc_BodyState';
 
 export const db = {
   getLogs: (): TrainingLog[] => {
     const data = localStorage.getItem(LOGS_KEY);
     return data ? JSON.parse(data) : [];
+  },
+
+  getBodyState: (): BodyState => {
+    try {
+      const data = localStorage.getItem(BODY_STATE_KEY);
+      return data ? JSON.parse(data) : DEFAULT_BODY_STATE;
+    } catch {
+      return DEFAULT_BODY_STATE;
+    }
+  },
+
+  saveBodyState: (state: BodyState): void => {
+    localStorage.setItem(BODY_STATE_KEY, JSON.stringify(state));
   },
 
   addLog: (log: Omit<TrainingLog, 'id' | 'created_at'>): TrainingLog => {

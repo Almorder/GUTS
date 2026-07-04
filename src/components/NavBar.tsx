@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { Home, Map, BarChart2, Calendar, Settings } from 'lucide-react';
+import { Home, Map, Activity, BarChart2, Calendar, Settings } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function NavBar() {
@@ -9,6 +9,7 @@ export default function NavBar() {
   const links = [
     { to: '/', icon: <Home size={22} strokeWidth={2.5} /> },
     { to: '/roadmap', icon: <Map size={22} strokeWidth={2.5} /> },
+    { to: '/bodymap', icon: <Activity size={22} strokeWidth={2.5} /> },
     { to: '/stats', icon: <BarChart2 size={22} strokeWidth={2.5} /> },
     { to: '/planner', icon: <Calendar size={22} strokeWidth={2.5} /> },
     { to: '/settings', icon: <Settings size={22} strokeWidth={2.5} /> },

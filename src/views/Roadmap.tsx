@@ -86,43 +86,43 @@ export default function Roadmap({ openLogger }: RoadmapProps) {
       <div className="px-5 flex-1 flex flex-col relative mt-8">
         
         {/* Visual Map Container */}
-        <div className="relative w-full h-[500px] bg-brand-bg/50 border border-brand-border/30 rounded-3xl overflow-hidden shadow-inner">
+        <div className="relative w-full h-[600px] bg-brand-bg/50 border border-brand-border/30 rounded-3xl overflow-hidden shadow-inner">
           
           {/* Background Grid Pattern */}
           <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(currentColor 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
           
           {/* Connections */}
           {/* Pullups -> Front Lever */}
-          <Connection from="pullups" to="fl-hold" startX="20%" startY="25%" endX="20%" endY="75%" />
+          <Connection from="pullups" to="fl-hold" startX="80%" startY="15%" endX="80%" endY="85%" />
           {/* Pullups -> Muscle Up */}
-          <Connection from="pullups" to="muscleup" startX="20%" startY="25%" endX="50%" endY="75%" />
+          <Connection from="pullups" to="muscleup" startX="80%" startY="15%" endX="50%" endY="70%" />
           {/* Dips -> Muscle Up */}
-          <Connection from="dips" to="muscleup" startX="50%" startY="25%" endX="50%" endY="75%" />
+          <Connection from="dips" to="muscleup" startX="50%" startY="30%" endX="50%" endY="70%" />
           {/* Dips -> Planche */}
-          <Connection from="dips" to="planche" startX="50%" startY="25%" endX="80%" endY="75%" />
+          <Connection from="dips" to="planche" startX="50%" startY="30%" endX="20%" endY="85%" />
           {/* Handstand -> Planche */}
-          <Connection from="hs" to="planche" startX="80%" startY="25%" endX="80%" endY="75%" />
+          <Connection from="hs" to="planche" startX="20%" startY="15%" endX="20%" endY="85%" />
 
           {/* Nodes */}
           {/* Tier 1 */}
-          <div className="absolute top-[25%] left-[20%] -translate-x-1/2 -translate-y-1/2 z-10">
+          <div className="absolute top-[15%] left-[80%] -translate-x-1/2 -translate-y-1/2 z-10">
             {getSkill('pullups') && <SkillNode skill={getSkill('pullups')!} onClick={() => setSelectedSkill(getSkill('pullups')!)} />}
           </div>
-          <div className="absolute top-[25%] left-[50%] -translate-x-1/2 -translate-y-1/2 z-10">
+          <div className="absolute top-[30%] left-[50%] -translate-x-1/2 -translate-y-1/2 z-10">
             {getSkill('dips') && <SkillNode skill={getSkill('dips')!} onClick={() => setSelectedSkill(getSkill('dips')!)} />}
           </div>
-          <div className="absolute top-[25%] left-[80%] -translate-x-1/2 -translate-y-1/2 z-10">
+          <div className="absolute top-[15%] left-[20%] -translate-x-1/2 -translate-y-1/2 z-10">
             {getSkill('hs') && <SkillNode skill={getSkill('hs')!} onClick={() => setSelectedSkill(getSkill('hs')!)} />}
           </div>
 
           {/* Tier 2 */}
-          <div className="absolute top-[75%] left-[20%] -translate-x-1/2 -translate-y-1/2 z-10">
+          <div className="absolute top-[85%] left-[80%] -translate-x-1/2 -translate-y-1/2 z-10">
             {getSkill('fl-hold') && <SkillNode skill={getSkill('fl-hold')!} onClick={() => setSelectedSkill(getSkill('fl-hold')!)} />}
           </div>
-          <div className="absolute top-[75%] left-[50%] -translate-x-1/2 -translate-y-1/2 z-10">
+          <div className="absolute top-[70%] left-[50%] -translate-x-1/2 -translate-y-1/2 z-10">
             {getSkill('muscleup') && <SkillNode skill={getSkill('muscleup')!} onClick={() => setSelectedSkill(getSkill('muscleup')!)} />}
           </div>
-          <div className="absolute top-[75%] left-[80%] -translate-x-1/2 -translate-y-1/2 z-10">
+          <div className="absolute top-[85%] left-[20%] -translate-x-1/2 -translate-y-1/2 z-10">
             {getSkill('planche') && <SkillNode skill={getSkill('planche')!} onClick={() => setSelectedSkill(getSkill('planche')!)} />}
           </div>
           

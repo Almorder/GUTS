@@ -32,7 +32,8 @@ export default function Planner() {
     if (selectedDays.length === 0) return;
     const logs = db.getLogs();
     const readiness = getReadinessScore(logs);
-    const newProg = generateProgram(selectedDays, hour, cycle, logs, readiness);
+    const bodyState = db.getBodyState();
+    const newProg = generateProgram(selectedDays, hour, cycle, logs, readiness, bodyState);
     setDraft(newProg); // Show draft for editing before saving
   };
 
@@ -41,7 +42,8 @@ export default function Planner() {
     setSelectedDays(optimalDays);
     const logs = db.getLogs();
     const readiness = getReadinessScore(logs);
-    const newProg = generateProgram(optimalDays, '18:00', cycle, logs, readiness);
+    const bodyState = db.getBodyState();
+    const newProg = generateProgram(optimalDays, '18:00', cycle, logs, readiness, bodyState);
     setHour('18:00');
     setDraft(newProg);
   };

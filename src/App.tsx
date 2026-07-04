@@ -10,6 +10,7 @@ import Stats from './views/Stats';
 import Planner from './views/Planner';
 import Settings from './views/Settings';
 import Onboarding from './views/Onboarding';
+import BodyMapPage from './views/BodyMapPage';
 
 import NavBar from './components/NavBar';
 import MainAction from './components/MainAction';
@@ -79,6 +80,7 @@ function App() {
           <Routes location={location} key={location.pathname}>
             <Route path="/" element={<PageWrapper><Home logs={logs} onRefresh={refreshLogs} onEditLog={(log) => setModalConfig({ isOpen: true, initialLog: log })} /></PageWrapper>} />
             <Route path="/roadmap" element={<PageWrapper><Roadmap openLogger={(c) => setModalConfig({ ...c, isOpen: true })} /></PageWrapper>} />
+            <Route path="/bodymap" element={<PageWrapper><BodyMapPage /></PageWrapper>} />
             <Route path="/stats" element={<PageWrapper><Stats /></PageWrapper>} />
             <Route path="/planner" element={<PageWrapper><Planner /></PageWrapper>} />
             <Route path="/settings" element={<PageWrapper><Settings /></PageWrapper>} />

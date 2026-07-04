@@ -1,4 +1,4 @@
-import type { TrainingProgram, CycleType, SubSet, TrainingLog, Level } from './db';
+import type { TrainingProgram, CycleType, SubSet, TrainingLog, Level, BodyState } from './db';
 import { getBestPerformance } from './progression';
 
 // Detect user's best level for a movement by checking which levels have logged data
@@ -16,7 +16,8 @@ export function generateProgram(
   availableHours: string, 
   targetCycle: CycleType,
   logs: TrainingLog[],
-  readinessScore: number
+  readinessScore: number,
+  bodyState?: BodyState
 ): Omit<TrainingProgram, 'id' | 'created_at'> {
   
   // Helpers to get PRs (searches across all levels if no level provided)
@@ -138,19 +139,64 @@ export function generateProgram(
     return sets;
   };
 
-  const templates = [
-    { focus: ['Front Lever', 'Pullups'], builder: buildDay1 },
-    { focus: ['Planche', 'Dips'], builder: buildDay2 },
-    { focus: ['Handstand', 'Mix'], builder: buildDay3 }
+  const buildRecoveryDay = (): SubSet[] => {
+    return [
+      { movement: 'Renforcement', mechanic: 'Hold', level: 'Full', duration: 300, targetDuration: 300 },
+      { movement: 'L-sit', mechanic: 'Hold', level: 'Tuck', duration: 0, targetDuration: 30, targetRest: 60 },
+      { movement: 'Renforcement Core', mechanic: 'Hold', level: 'Full', duration: 0, targetDuration: 60, targetRest: 60 }
+    ];
+  };
+
+  const allTemplates = [
+    { id: 'day1', focus: ['Front Lever', 'Pullups'], builder: buildDay1 },
+    { id: 'day2', focus: ['Planche', 'Dips'], builder: buildDay2 },
+    { id: 'day3', focus: ['Handstand', 'Mix'], builder: buildDay3 }
   ];
 
+  let activeTemplates = [...allTemplates];
+
+  if (bodyState) {
+    // PAIN Filters
+    if (bodyState.lats === 'PAIN' || bodyState.core === 'PAIN') {
+      activeTemplates = activeTemplates.filter(t => t.id !== 'day1');
+    }
+    if (bodyState.chest === 'PAIN' || bodyState.shoulders === 'PAIN' || bodyState.core === 'PAIN') {
+      activeTemplates = activeTemplates.filter(t => t.id !== 'day2');
+    }
+    if (bodyState.shoulders === 'PAIN') {
+      activeTemplates = activeTemplates.filter(t => t.id !== 'day3');
+    }
+  }
+
+  // Fallback to recovery if everything is blocked
+  if (activeTemplates.length === 0) {
+    activeTemplates = [{ id: 'recovery', focus: ['Mobilité', 'Récupération'], builder: buildRecoveryDay }];
+  }
+
   const schedule = availableDays.map((day, index) => {
-    const t = templates[index % templates.length];
+    const t = activeTemplates[index % activeTemplates.length];
+    
+    // SORE scaling (reduce intensity for the specific template if the muscle is SORE)
+    let sessionScale = 1;
+    if (bodyState) {
+      if (t.id === 'day1' && (bodyState.lats === 'SORE' || bodyState.core === 'SORE')) sessionScale = 0.7;
+      if (t.id === 'day2' && (bodyState.chest === 'SORE' || bodyState.shoulders === 'SORE' || bodyState.core === 'SORE')) sessionScale = 0.7;
+      if (t.id === 'day3' && bodyState.shoulders === 'SORE') sessionScale = 0.7;
+    }
+
+    const baseSets = t.builder();
+    const structured_focus = baseSets.map(set => {
+      const s = { ...set };
+      if (s.targetDuration && sessionScale < 1) s.targetDuration = Math.max(5, Math.floor(s.targetDuration * sessionScale));
+      if (s.targetReps && sessionScale < 1) s.targetReps = Math.max(1, Math.floor(s.targetReps * sessionScale));
+      return s;
+    });
+
     return {
       day,
       hour: availableHours,
       focus: t.focus,
-      structured_focus: t.builder()
+      structured_focus
     };
   });
 
