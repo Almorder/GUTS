@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { X, Lock, Unlock, CheckCircle, ChevronRight, Edit3 } from 'lucide-react';
-import type { TrainingLog, SubSet } from '../lib/db';
+import type { TrainingLog, SubSet, Movement, Mechanic, Level } from '../lib/db';
 import type { Skill } from '../lib/progression';
 
 interface SkillDetailProps {
@@ -9,9 +9,10 @@ interface SkillDetailProps {
   logs: TrainingLog[];
   onClose: () => void;
   onEditLog?: (log: TrainingLog) => void;
+  openLogger?: (config: { isExam: boolean, movement: Movement, level: Level, mechanic: Mechanic, targetUnit: 's'|'reps', targetValue: number }) => void;
 }
 
-export default function SkillDetailModal({ skill, logs, onClose, onEditLog }: SkillDetailProps) {
+export default function SkillDetailModal({ skill, logs, onClose, onEditLog, openLogger }: SkillDetailProps) {
   // Filter logs for this specific skill/movement
   const skillLogs = useMemo(() => {
     return logs.filter(log => {
@@ -86,23 +87,46 @@ export default function SkillDetailModal({ skill, logs, onClose, onEditLog }: Sk
                 const isCurrentTarget = !m.unlocked && (i === 0 || skill.milestones[i - 1].unlocked);
                 
                 return (
-                  <div key={i} className={`flex items-center gap-3 p-3 rounded-xl border ${
-                    isPassed ? 'bg-brand-accent/5 border-brand-accent/30' : 
-                    isCurrentTarget ? 'bg-brand-text/5 border-brand-text/30 shadow-sm' : 
-                    'bg-brand-bg/50 border-brand-border/30 opacity-50'
-                  }`}>
-                    <div className="shrink-0">
-                      {isPassed ? <CheckCircle size={16} className="text-brand-accent" /> :
-                       isCurrentTarget ? <Unlock size={16} className="text-brand-text" /> :
-                       <Lock size={16} className="text-brand-text/40" />}
+                  <div key={i} className="flex flex-col gap-3">
+                    <div className={`flex items-center gap-3 p-3 rounded-xl border ${
+                      isPassed ? 'bg-brand-accent/5 border-brand-accent/30' : 
+                      isCurrentTarget ? 'bg-brand-text/5 border-brand-text/30 shadow-sm' : 
+                      'bg-brand-bg/50 border-brand-border/30 opacity-50'
+                    }`}>
+                      <div className="shrink-0">
+                        {isPassed ? <CheckCircle size={16} className="text-brand-accent" /> :
+                         isCurrentTarget ? <Unlock size={16} className="text-brand-text" /> :
+                         <Lock size={16} className="text-brand-text/40" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-bold text-sm text-brand-text truncate">{m.label}</div>
+                        <div className="text-[10px] text-brand-text/50 uppercase tracking-wider">{m.level}</div>
+                      </div>
+                      <div className={`font-bold tabular-nums text-right ${isPassed ? 'text-brand-accent' : 'text-brand-text'}`}>
+                        {m.target}<span className="text-[10px] ml-0.5">{m.unit}</span>
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-bold text-sm text-brand-text truncate">{m.label}</div>
-                      <div className="text-[10px] text-brand-text/50 uppercase tracking-wider">{m.level}</div>
-                    </div>
-                    <div className={`font-bold tabular-nums ${isPassed ? 'text-brand-accent' : 'text-brand-text'}`}>
-                      {m.target}<span className="text-[10px] ml-0.5">{m.unit}</span>
-                    </div>
+                    
+                    {isCurrentTarget && skill.isExamAvailable && openLogger && (
+                      <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}>
+                        <button
+                          onClick={() => {
+                            onClose();
+                            openLogger({
+                              isExam: true,
+                              movement: skill.movement as Movement,
+                              level: m.level as Level,
+                              mechanic: skill.mechanic as Mechanic,
+                              targetUnit: m.unit,
+                              targetValue: m.target
+                            });
+                          }}
+                          className="w-full bg-brand-accent text-brand-bg py-3 rounded-xl uppercase tracking-widest font-bold text-[10px] flex items-center justify-center gap-2 shadow-sm"
+                        >
+                          🎓 Passer l'Examen ({m.target}{m.unit})
+                        </button>
+                      </motion.div>
+                    )}
                   </div>
                 );
               })}

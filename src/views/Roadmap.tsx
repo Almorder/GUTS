@@ -1,23 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { db } from '../lib/db';
 import type { TrainingLog, Movement, Level, Mechanic } from '../lib/db';
 import { buildSkills } from '../lib/progression';
-import { Lock, Unlock, CheckCircle } from 'lucide-react';
-import { motion } from 'framer-motion';
-import type { Variants } from 'framer-motion';
-
-const containerVariants: Variants = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: { staggerChildren: 0.1 }
-  }
-};
-
-const itemVariants: Variants = {
-  hidden: { opacity: 0, x: -20 },
-  show: { opacity: 1, x: 0, transition: { type: 'spring', stiffness: 200, damping: 20 } }
-};
+import type { Skill } from '../lib/progression';
+import { AnimatePresence } from 'framer-motion';
+import SkillNode from '../components/SkillNode';
+import SkillDetailModal from '../components/SkillDetailModal';
 
 interface RoadmapProps {
   openLogger?: (config: { isExam: boolean, movement: Movement, level: Level, mechanic: Mechanic, targetUnit: 's'|'reps', targetValue: number }) => void;
@@ -25,117 +13,136 @@ interface RoadmapProps {
 
 export default function Roadmap({ openLogger }: RoadmapProps) {
   const [logs, setLogs] = useState<TrainingLog[]>([]);
+  const [selectedSkill, setSelectedSkill] = useState<Skill | null>(null);
 
   useEffect(() => {
     setLogs(db.getLogs());
   }, []);
 
-  const skills = buildSkills(logs);
+  const skills = useMemo(() => buildSkills(logs), [logs]);
+
+  // Helper to find skill state
+  const getSkill = (id: string) => skills.find(s => s.id === id);
+  
+  // Connection line component
+  const Connection = ({ from, to, startX, startY, endX, endY }: { from: string, to: string, startX: string, startY: string, endX: string, endY: string }) => {
+    const sourceSkill = getSkill(from);
+    const targetSkill = getSkill(to);
+    if (!sourceSkill || !targetSkill) return null;
+
+    // Line is "active" if the source skill has at least 1 unlocked milestone
+    const isActive = sourceSkill.milestones[0]?.unlocked;
+    // Line is "completed" if the target skill also has at least 1 unlocked milestone
+    const isCompleted = isActive && targetSkill.milestones[0]?.unlocked;
+
+    return (
+      <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 0 }}>
+        <defs>
+          <linearGradient id={`grad-${from}-${to}`} x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor={isActive ? 'var(--color-brand-accent)' : 'currentColor'} stopOpacity={isActive ? 1 : 0.1} />
+            <stop offset="100%" stopColor={isCompleted ? 'var(--color-brand-accent)' : 'currentColor'} stopOpacity={isCompleted ? 1 : 0.1} />
+          </linearGradient>
+          <filter id="glow">
+            <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
+            <feMerge>
+              <feMergeNode in="coloredBlur"/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
+        </defs>
+        <line
+          x1={startX} y1={startY}
+          x2={endX} y2={endY}
+          stroke={`url(#grad-${from}-${to})`}
+          strokeWidth="3"
+          strokeLinecap="round"
+          className={isActive ? 'text-brand-accent' : 'text-brand-border'}
+          filter={isActive ? 'url(#glow)' : ''}
+        />
+        {/* Animated pulse if active but target not completed */}
+        {isActive && !isCompleted && (
+          <circle r="4" fill="var(--color-brand-accent)" filter="url(#glow)">
+            <animateMotion
+              dur="2s"
+              repeatCount="indefinite"
+              path={`M ${startX.replace('%','')} ${startY.replace('%','')} L ${endX.replace('%','')} ${endY.replace('%','')}`}
+              keyPoints="0;1"
+              keyTimes="0;1"
+              calcMode="linear"
+            />
+          </circle>
+        )}
+      </svg>
+    );
+  };
 
   return (
-    <div className="flex flex-col gap-6 pt-6">
+    <div className="flex flex-col gap-6 pt-6 min-h-screen">
       <div className="px-5">
-        <h1 className="text-3xl font-serif font-bold tracking-tight mb-2">Roadmap</h1>
-        <p className="text-sm text-brand-text/60">Ton plan de bataille actuel.</p>
+        <h1 className="text-3xl font-serif font-bold tracking-tight mb-2">Skill Tree</h1>
+        <p className="text-sm text-brand-text/60">L'arbre de maîtrise de la gravité.</p>
       </div>
       
-      <div className="px-5 mt-4">
-        <h2 className="font-serif text-xl font-bold mb-1">Roadmap (2026-2028)</h2>
-        <p className="text-xs text-brand-text/50 mb-6">La voie de la maîtrise. Passe les examens pour débloquer les paliers suivants.</p>
+      <div className="px-5 flex-1 flex flex-col relative mt-8">
         
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          animate="show"
-          className="flex flex-col gap-8 pb-10"
-        >
-          {skills.map(skill => (
-            <motion.div key={skill.id} variants={itemVariants} className="relative">
-              {/* Skill Header */}
-              <div className="flex items-center gap-3 mb-4">
-                <span className="text-2xl">{skill.icon}</span>
-                <div>
-                  <h3 className="font-bold text-sm uppercase tracking-wider">{skill.name}</h3>
-                  <p className="text-[10px] text-brand-text/40 tracking-widest">{skill.subtitle}</p>
-                </div>
-              </div>
+        {/* Visual Map Container */}
+        <div className="relative w-full h-[500px] bg-brand-bg/50 border border-brand-border/30 rounded-3xl overflow-hidden shadow-inner">
+          
+          {/* Background Grid Pattern */}
+          <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(currentColor 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
+          
+          {/* Connections */}
+          {/* Pullups -> Front Lever */}
+          <Connection from="pullups" to="fl-hold" startX="20%" startY="25%" endX="20%" endY="75%" />
+          {/* Pullups -> Muscle Up */}
+          <Connection from="pullups" to="muscleup" startX="20%" startY="25%" endX="50%" endY="75%" />
+          {/* Dips -> Muscle Up */}
+          <Connection from="dips" to="muscleup" startX="50%" startY="25%" endX="50%" endY="75%" />
+          {/* Dips -> Planche */}
+          <Connection from="dips" to="planche" startX="50%" startY="25%" endX="80%" endY="75%" />
+          {/* Handstand -> Planche */}
+          <Connection from="hs" to="planche" startX="80%" startY="25%" endX="80%" endY="75%" />
 
-              {/* Vertical Timeline */}
-              <div className="ml-4 pl-4 border-l-2 border-brand-border/40 flex flex-col gap-6 relative">
-                {skill.milestones.map((m, i) => {
-                  const isPassed = m.unlocked;
-                  // For UI: if the previous is passed, this one is "Current Goal"
-                  const isCurrentTarget = !m.unlocked && (i === 0 || skill.milestones[i - 1].unlocked);
+          {/* Nodes */}
+          {/* Tier 1 */}
+          <div className="absolute top-[25%] left-[20%] -translate-x-1/2 -translate-y-1/2 z-10">
+            {getSkill('pullups') && <SkillNode skill={getSkill('pullups')!} onClick={() => setSelectedSkill(getSkill('pullups')!)} />}
+          </div>
+          <div className="absolute top-[25%] left-[50%] -translate-x-1/2 -translate-y-1/2 z-10">
+            {getSkill('dips') && <SkillNode skill={getSkill('dips')!} onClick={() => setSelectedSkill(getSkill('dips')!)} />}
+          </div>
+          <div className="absolute top-[25%] left-[80%] -translate-x-1/2 -translate-y-1/2 z-10">
+            {getSkill('hs') && <SkillNode skill={getSkill('hs')!} onClick={() => setSelectedSkill(getSkill('hs')!)} />}
+          </div>
 
-                  return (
-                    <motion.div key={i} variants={itemVariants} className="relative">
-                      {/* Timeline Dot */}
-                      <div className={`absolute -left-[23px] top-1 w-3 h-3 rounded-full border-2 transition-colors duration-500 ${
-                        isPassed ? 'bg-brand-accent border-brand-accent' :
-                        isCurrentTarget ? 'bg-brand-bg border-brand-accent' :
-                        'bg-brand-bg border-brand-border'
-                      }`} />
-
-                      {/* Content Card */}
-                      <motion.div
-                        whileHover={{ scale: 1.02 }}
-                        className={`p-3 rounded-lg border transition-all duration-300 ${
-                          isPassed ? 'border-brand-accent/30 bg-brand-accent/5' :
-                          isCurrentTarget ? 'border-brand-text/30 bg-brand-bg shadow-sm' :
-                          'border-brand-border/40 bg-brand-bg/50 opacity-50'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            {isPassed ? <CheckCircle size={14} className="text-brand-accent" /> :
-                             isCurrentTarget ? <Unlock size={14} className="text-brand-text" /> :
-                             <Lock size={14} className="text-brand-text/40" />}
-                            <span className="font-bold text-sm">{m.label}</span>
-                          </div>
-                          <span className={`font-bold tabular-nums ${isPassed ? 'text-brand-accent' : 'text-brand-text'}`}>
-                            {m.target}<span className="text-[10px] font-normal ml-0.5">{m.unit}</span>
-                          </span>
-                        </div>
-                        {isCurrentTarget && skill.isExamAvailable && (
-                          <motion.div
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: 'auto' }}
-                            className="mt-3"
-                          >
-                            <button
-                              onClick={() => openLogger?.({
-                                isExam: true,
-                                movement: skill.movement as Movement,
-                                level: m.level as Level,
-                                mechanic: skill.mechanic as Mechanic,
-                                targetUnit: m.unit,
-                                targetValue: m.target
-                              })}
-                              className="w-full bg-brand-accent text-brand-bg py-2 rounded uppercase tracking-widest font-bold text-[10px] flex items-center justify-center gap-2 shadow-sm"
-                            >
-                              🎓 Passer l'Examen ({m.target}{m.unit})
-                            </button>
-                          </motion.div>
-                        )}
-                        {isCurrentTarget && !skill.isExamAvailable && (
-                          <div className="mt-2 w-full h-1 bg-brand-border/40 rounded-full overflow-hidden">
-                            <motion.div
-                              initial={{ width: 0 }}
-                              animate={{ width: `${Math.min((skill.current / m.target) * 100, 100)}%` }}
-                              transition={{ duration: 1, delay: 0.5, ease: "easeOut" }}
-                              className="h-full bg-brand-text rounded-full"
-                            />
-                          </div>
-                        )}
-                      </motion.div>
-                    </motion.div>
-                  );
-                })}
-              </div>
-            </motion.div>
-          ))}
-        </motion.div>
+          {/* Tier 2 */}
+          <div className="absolute top-[75%] left-[20%] -translate-x-1/2 -translate-y-1/2 z-10">
+            {getSkill('fl-hold') && <SkillNode skill={getSkill('fl-hold')!} onClick={() => setSelectedSkill(getSkill('fl-hold')!)} />}
+          </div>
+          <div className="absolute top-[75%] left-[50%] -translate-x-1/2 -translate-y-1/2 z-10">
+            {getSkill('muscleup') && <SkillNode skill={getSkill('muscleup')!} onClick={() => setSelectedSkill(getSkill('muscleup')!)} />}
+          </div>
+          <div className="absolute top-[75%] left-[80%] -translate-x-1/2 -translate-y-1/2 z-10">
+            {getSkill('planche') && <SkillNode skill={getSkill('planche')!} onClick={() => setSelectedSkill(getSkill('planche')!)} />}
+          </div>
+          
+        </div>
+        
+        <p className="text-center text-[10px] uppercase tracking-widest text-brand-text/40 font-bold mt-6">
+          Débloque les prérequis pour accéder aux compétences supérieures
+        </p>
       </div>
+
+      <AnimatePresence>
+        {selectedSkill && (
+          <SkillDetailModal
+            skill={selectedSkill}
+            logs={logs}
+            onClose={() => setSelectedSkill(null)}
+            openLogger={openLogger}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

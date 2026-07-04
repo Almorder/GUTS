@@ -22,6 +22,8 @@ export interface Skill {
   movement: string;
   mechanic: string;
   isExamAvailable: boolean;
+  prerequisites: string[];
+  isLocked: boolean;
 }
 
 function parseLegacyPerformance(perf: string): number {
@@ -124,7 +126,8 @@ export function buildSkills(logs: TrainingLog[]): Skill[] {
   const createSkill = (
     id: string, name: string, icon: string, subtitle: string, 
     movement: string, mechanic: string, unit: 's'|'reps',
-    milestonesDef: {label: string, target: number, level: string}[]
+    milestonesDef: {label: string, target: number, level: string}[],
+    prerequisites: string[] = []
   ): Skill => {
     
     const milestones: Milestone[] = milestonesDef.map((m) => {
@@ -150,29 +153,11 @@ export function buildSkills(logs: TrainingLog[]): Skill[] {
     const isExamAvailable = next ? current >= next.target : false;
 
     return {
-      id, name, icon, subtitle, current, milestones, movement, mechanic, isExamAvailable
+      id, name, icon, subtitle, current, milestones, movement, mechanic, isExamAvailable, prerequisites, isLocked: false
     };
   };
 
-  return [
-    createSkill('fl-hold', 'Front Lever', '🔒', 'Hold Variations', 'Front Lever', 'Hold', 's', [
-      { label: 'Tuck', target: 15, level: 'Tuck' },
-      { label: 'Adv Tuck', target: 15, level: 'Adv Tuck' },
-      { label: 'Straddle', target: 10, level: 'Straddle' },
-      { label: 'Full', target: 8, level: 'Full' },
-    ]),
-    createSkill('planche', 'Planche', '🔥', 'Hold Variations', 'Planche', 'Hold', 's', [
-      { label: 'Tuck', target: 15, level: 'Tuck' },
-      { label: 'Adv Tuck', target: 10, level: 'Adv Tuck' },
-      { label: 'Straddle', target: 8, level: 'Straddle' },
-      { label: 'Full', target: 5, level: 'Full' },
-    ]),
-    createSkill('hs', 'Handstand', '🤸', 'Hold', 'Handstand', 'Hold', 's', [
-      { label: 'Wall', target: 60, level: 'Tuck' }, // Using Tuck for Wall variation equivalent
-      { label: 'Free Base', target: 15, level: 'Full' },
-      { label: 'Free Solid', target: 30, level: 'Full' },
-      { label: 'Master', target: 60, level: 'Full' },
-    ]),
+  const skills = [
     createSkill('pullups', 'Tractions', '💪', 'Pull-ups', 'Tractions', 'Pull', 'reps', [
       { label: 'Base', target: 10, level: 'Full' },
       { label: 'Strong', target: 15, level: 'Full' },
@@ -185,13 +170,44 @@ export function buildSkills(logs: TrainingLog[]): Skill[] {
       { label: 'Elite', target: 35, level: 'Full' },
       { label: 'Master', target: 45, level: 'Full' },
     ]),
+    createSkill('hs', 'Handstand', '🤸', 'Hold', 'Handstand', 'Hold', 's', [
+      { label: 'Wall', target: 60, level: 'Tuck' }, 
+      { label: 'Free Base', target: 15, level: 'Full' },
+      { label: 'Free Solid', target: 30, level: 'Full' },
+      { label: 'Master', target: 60, level: 'Full' },
+    ]),
+    createSkill('fl-hold', 'Front Lever', '🔒', 'Hold Variations', 'Front Lever', 'Hold', 's', [
+      { label: 'Tuck', target: 15, level: 'Tuck' },
+      { label: 'Adv Tuck', target: 15, level: 'Adv Tuck' },
+      { label: 'Straddle', target: 10, level: 'Straddle' },
+      { label: 'Full', target: 8, level: 'Full' },
+    ], ['pullups']),
+    createSkill('planche', 'Planche', '🔥', 'Hold Variations', 'Planche', 'Hold', 's', [
+      { label: 'Tuck', target: 15, level: 'Tuck' },
+      { label: 'Adv Tuck', target: 10, level: 'Adv Tuck' },
+      { label: 'Straddle', target: 8, level: 'Straddle' },
+      { label: 'Full', target: 5, level: 'Full' },
+    ], ['dips', 'hs']),
     createSkill('muscleup', 'Muscle Up', '💥', 'Pull to Push', 'Muscle Up', 'Pull', 'reps', [
       { label: 'Premier', target: 1, level: 'Full' },
       { label: 'Base', target: 3, level: 'Full' },
       { label: 'Strong', target: 5, level: 'Full' },
       { label: 'Elite', target: 8, level: 'Full' },
-    ])
+    ], ['pullups', 'dips'])
   ];
+
+  // Second pass to compute isLocked status based on prerequisites
+  for (const skill of skills) {
+    if (skill.prerequisites.length > 0) {
+      skill.isLocked = skill.prerequisites.some(preId => {
+        const preSkill = skills.find(s => s.id === preId);
+        // A prerequisite is considered unmet if its first milestone is NOT unlocked
+        return !preSkill || !preSkill.milestones[0].unlocked;
+      });
+    }
+  }
+
+  return skills;
 }
 
 // ─────────────────────────────────────────────────────────────

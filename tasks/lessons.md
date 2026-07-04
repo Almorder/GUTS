@@ -6,3 +6,4 @@
 [2026-07-04] | LogModal ne listait pas les nouveaux mouvements/niveaux ajoutés | Quand on ajoute un Movement ou Level dans db.ts, TOUJOURS mettre à jour LogModal.tsx
 [2026-07-04] | Bouton delete invisible sur mobile (hover-only) | Ne jamais utiliser opacity-0 group-hover pour des actions critiques sur mobile
 [2026-07-04] | `&&` ne fonctionne pas comme séparateur de commandes en PowerShell | Utiliser des commandes séparées
+[2026-07-04] | Les entraînements sous-maximaux généraient de la frustration | Ajouter un flag `isAmrap` sur la dernière série des blocs pour permettre au sportif de tenter un record sans compromettre le volume global
