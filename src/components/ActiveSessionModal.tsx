@@ -233,7 +233,7 @@ export default function ActiveSessionModal({ session, cycleType, onClose, onSave
                   </div>
 
                   <div className="flex flex-col gap-4">
-                    {currentSet.targetReps !== undefined && currentSet.targetReps > 0 && (
+                    {currentSet.mechanic !== 'Hold' && (
                       <MetricAdjuster
                         label="Reps"
                         value={currentSet.reps}
@@ -242,7 +242,7 @@ export default function ActiveSessionModal({ session, cycleType, onClose, onSave
                         step={1}
                       />
                     )}
-                    {currentSet.targetDuration !== undefined && currentSet.targetDuration > 0 && (
+                    {currentSet.mechanic === 'Hold' && (
                       <MetricAdjuster
                         label="Temps (s)"
                         value={currentSet.duration}

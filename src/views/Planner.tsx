@@ -261,13 +261,30 @@ export default function Planner() {
                             <Clock size={10} /> {session.hour}
                           </div>
                         </div>
-                        <div className="text-right flex flex-col gap-1 items-end">
-                          {session.focus.map((f, j) => (
-                            <span key={j} className="block text-xs font-bold text-brand-text bg-brand-bg px-2 py-0.5 rounded-md border border-brand-border/30">{f}</span>
-                          ))}
+                        <div className="text-right flex flex-col gap-2 items-end">
+                          {(() => {
+                            if (!session.structured_focus) return session.focus.map((f, j) => <span key={j} className="block text-xs font-bold text-brand-text bg-brand-bg px-2 py-0.5 rounded-md border border-brand-border/30">{f}</span>);
+                            
+                            // Group by movement
+                            const groups = new Map<string, { sets: number, target: string }>();
+                            session.structured_focus.forEach(set => {
+                              if (!groups.has(set.movement)) {
+                                const targetStr = set.targetDuration ? `${set.targetDuration}s` : (set.targetReps ? `${set.targetReps}r` : '');
+                                groups.set(set.movement, { sets: 1, target: targetStr });
+                              } else {
+                                groups.get(set.movement)!.sets += 1;
+                              }
+                            });
+
+                            return Array.from(groups.entries()).map(([mov, data], j) => (
+                              <span key={j} className="block text-xs font-medium text-brand-text/80">
+                                {data.sets > 1 ? `${data.sets}x ` : ''}<strong className="text-brand-text">{mov}</strong> {data.target ? `(${data.target})` : ''}
+                              </span>
+                            ));
+                          })()}
                           {index === 0 && (
-                            <span className="text-[9px] uppercase tracking-widest font-bold text-brand-accent mt-1 flex items-center gap-1">
-                              ▶ Démarrer la session
+                            <span className="text-[9px] uppercase tracking-widest font-bold text-brand-accent mt-2 flex items-center gap-1 bg-brand-accent/10 px-2 py-1 rounded-md">
+                              ▶ Démarrer
                             </span>
                           )}
                         </div>

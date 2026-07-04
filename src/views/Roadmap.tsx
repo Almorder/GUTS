@@ -106,7 +106,7 @@ export default function Roadmap({ openLogger }: RoadmapProps) {
                               onClick={() => openLogger?.({
                                 isExam: true,
                                 movement: skill.movement as Movement,
-                                level: skill.level as Level,
+                                level: m.level as Level,
                                 mechanic: skill.mechanic as Mechanic,
                                 targetUnit: m.unit,
                                 targetValue: m.target

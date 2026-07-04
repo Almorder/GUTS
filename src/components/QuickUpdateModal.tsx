@@ -33,7 +33,7 @@ export default function QuickUpdateModal({ skill, onClose, onSave }: QuickUpdate
       sets: [{
         movement: skill.movement as any,
         mechanic: skill.mechanic as any,
-        level: skill.level as any || 'Full',
+        level: (skill.milestones.find(m => !m.unlocked)?.level || skill.milestones[skill.milestones.length - 1].level) as any,
         reps: unit === 'reps' ? value : 0,
         duration: unit === 's' ? value : 0,
         weight: 0

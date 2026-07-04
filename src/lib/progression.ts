@@ -8,7 +8,8 @@ export interface Milestone {
   label: string;
   target: number;
   unit: 's' | 'reps';
-  unlocked: boolean; // V3: Is this tier unlocked by passing an exam?
+  level: string; // V11: Variation Level (e.g. Tuck, Straddle)
+  unlocked: boolean;
 }
 
 export interface Skill {
@@ -16,11 +17,10 @@ export interface Skill {
   name: string;
   icon: string;
   subtitle: string;
-  current: number;
+  current: number; // Based on highest unlocked milestone target
   milestones: Milestone[];
   movement: string;
   mechanic: string;
-  level?: string;
   isExamAvailable: boolean;
 }
 
@@ -107,13 +107,12 @@ export function buildSkills(logs: TrainingLog[]): Skill[] {
   // Since we are migrating to V3, we will simulate unlocked state based on current max,
   // but future unlocks require explicit is_exam logs.
   
-  const hasPassedExam = (movement: string, target: number, unit: 's'|'reps') => {
-    // Look for a log that is an exam, has the movement, and beats the target
+  const hasPassedExam = (movement: string, level: string, target: number, unit: 's'|'reps') => {
     return logs.some(l => {
       if (!l.is_exam) return false;
       if (l.sets) {
         return l.sets.some(s => {
-          if (s.movement !== movement) return false;
+          if (s.movement !== movement || s.level !== level) return false;
           const val = unit === 's' ? (s.duration || 0) : (s.reps || 0);
           return val >= target;
         });
@@ -124,70 +123,67 @@ export function buildSkills(logs: TrainingLog[]): Skill[] {
 
   const createSkill = (
     id: string, name: string, icon: string, subtitle: string, 
-    movement: string, mechanic: string, unit: 's'|'reps', level: string,
-    milestonesDef: {label: string, target: number}[]
+    movement: string, mechanic: string, unit: 's'|'reps',
+    milestonesDef: {label: string, target: number, level: string}[]
   ): Skill => {
-    const current = getBestPerformance(logs, movement, mechanic, unit, level);
     
     const milestones: Milestone[] = milestonesDef.map((m) => {
-      // In V3, a tier is unlocked if an exam was passed OR if it's the base tier and current > target
-      // For migration sake, if we don't have exams yet, we auto-unlock if current >= target
-      const examPassed = hasPassedExam(movement, m.target, unit);
-      const isUnlocked = examPassed || (current >= m.target); 
+      const bestForLevel = getBestPerformance(logs, movement, mechanic, unit, m.level);
+      const examPassed = hasPassedExam(movement, m.level, m.target, unit);
+      const isUnlocked = examPassed || (bestForLevel >= m.target); 
       return { ...m, unit, unlocked: isUnlocked };
     });
 
+    // Current is derived from highest unlocked milestone (progress calculation logic uses it)
+    let current = 0;
     const next = milestones.find(m => !m.unlocked);
-    // Exam is available if current performance reaches or exceeds the locked milestone target
+    if (next) {
+      // If we have a next milestone, current is bestForLevel of the next milestone
+      // Plus the baseline of previous unlocked milestones if needed, but for simplicity
+      // we just track the current performance on the specific level being worked on.
+      current = getBestPerformance(logs, movement, mechanic, unit, next.level);
+    } else {
+      const last = milestones[milestones.length - 1];
+      current = getBestPerformance(logs, movement, mechanic, unit, last.level);
+    }
+
     const isExamAvailable = next ? current >= next.target : false;
 
     return {
-      id, name, icon, subtitle, current, milestones, movement, mechanic, level, isExamAvailable
+      id, name, icon, subtitle, current, milestones, movement, mechanic, isExamAvailable
     };
   };
 
   return [
-    createSkill('fl-hold', 'Front Lever', '🔒', 'Hold · Full', 'Front Lever', 'Hold', 's', 'Full', [
-      { label: 'Base', target: 3 },
-      { label: 'Solid', target: 5 },
-      { label: 'Elite', target: 8 },
-      { label: 'Master', target: 10 },
+    createSkill('fl-hold', 'Front Lever', '🔒', 'Hold Variations', 'Front Lever', 'Hold', 's', [
+      { label: 'Tuck', target: 15, level: 'Tuck' },
+      { label: 'Adv Tuck', target: 15, level: 'Adv Tuck' },
+      { label: 'Straddle', target: 10, level: 'Straddle' },
+      { label: 'Full', target: 8, level: 'Full' },
     ]),
-    createSkill('fl-pull', 'FL Pull-ups', '⚡', 'Pull · Adv Tuck', 'Front Lever', 'Pull', 'reps', 'Adv Tuck', [
-      { label: 'Base', target: 2 },
-      { label: 'Solid', target: 3 },
-      { label: 'Target', target: 5 },
-      { label: 'Elite', target: 8 },
+    createSkill('planche', 'Planche', '🔥', 'Hold Variations', 'Planche', 'Hold', 's', [
+      { label: 'Tuck', target: 15, level: 'Tuck' },
+      { label: 'Adv Tuck', target: 10, level: 'Adv Tuck' },
+      { label: 'Straddle', target: 8, level: 'Straddle' },
+      { label: 'Full', target: 5, level: 'Full' },
     ]),
-    createSkill('hs', 'Handstand', '🤸', 'Hold · Free', 'Handstand', 'Hold', 's', 'Full', [
-      { label: 'Base', target: 15 },
-      { label: 'Solid', target: 30 },
-      { label: 'Clean', target: 45 },
-      { label: 'Master', target: 60 },
+    createSkill('hs', 'Handstand', '🤸', 'Hold', 'Handstand', 'Hold', 's', [
+      { label: 'Wall', target: 60, level: 'Tuck' }, // Using Tuck for Wall variation equivalent
+      { label: 'Free Base', target: 15, level: 'Full' },
+      { label: 'Free Solid', target: 30, level: 'Full' },
+      { label: 'Master', target: 60, level: 'Full' },
     ]),
-    createSkill('planche', 'Planche', '🔥', 'Hold · Tuck', 'Planche', 'Hold', 's', 'Tuck', [
-      { label: 'Init', target: 3 },
-      { label: 'Base', target: 5 },
-      { label: 'Solid', target: 8 },
-      { label: 'Adv Tuck', target: 10 },
+    createSkill('pullups', 'Tractions', '💪', 'Pull-ups', 'Tractions', 'Pull', 'reps', [
+      { label: 'Base', target: 10, level: 'Full' },
+      { label: 'Strong', target: 15, level: 'Full' },
+      { label: 'Elite', target: 20, level: 'Full' },
+      { label: 'Master', target: 25, level: 'Full' },
     ]),
-    createSkill('pullups', 'Tractions', '💪', 'Pull-ups (Reps)', 'Tractions', 'Pull', 'reps', 'Full', [
-      { label: 'Current', target: 10 },
-      { label: 'Strong', target: 15 },
-      { label: 'Elite', target: 20 },
-      { label: 'Master', target: 25 },
-    ]),
-    createSkill('dips', 'Dips', '🔱', 'Parallel Bars (Reps)', 'Dips', 'Pull', 'reps', 'Full', [
-      { label: 'Current', target: 15 },
-      { label: 'Strong', target: 25 },
-      { label: 'Elite', target: 35 },
-      { label: 'Master', target: 45 },
-    ]),
-    createSkill('lsit', 'L-sit', '📐', 'Hold', 'L-sit', 'Hold', 's', 'Full', [
-      { label: 'Base', target: 10 },
-      { label: 'Solid', target: 20 },
-      { label: 'Clean', target: 30 },
-      { label: 'Master', target: 45 },
+    createSkill('dips', 'Dips', '🔱', 'Parallel Bars', 'Dips', 'Pull', 'reps', [
+      { label: 'Base', target: 15, level: 'Full' },
+      { label: 'Strong', target: 25, level: 'Full' },
+      { label: 'Elite', target: 35, level: 'Full' },
+      { label: 'Master', target: 45, level: 'Full' },
     ])
   ];
 }

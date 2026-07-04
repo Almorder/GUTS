@@ -34,7 +34,7 @@ export default function ExamModal({ skills, onClose, onSave }: ExamModalProps) {
       sets: [{
         movement: selectedSkill.movement as any,
         mechanic: selectedSkill.mechanic as any,
-        level: selectedSkill.level as any || 'Full',
+        level: (selectedSkill.milestones.find(m => !m.unlocked)?.level || selectedSkill.milestones[selectedSkill.milestones.length - 1].level) as any,
         reps: unit === 'reps' ? value : 0,
         duration: unit === 's' ? value : 0,
         weight: 0

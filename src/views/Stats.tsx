@@ -1,32 +1,32 @@
 import { useState, useEffect, useMemo } from 'react';
 import { db } from '../lib/db';
 import type { TrainingLog, Movement, Mechanic } from '../lib/db';
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { format, subDays } from 'date-fns';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Trophy, Activity, Flame, Medal, X as CloseIcon } from 'lucide-react';
-import Dashboard from '../components/Dashboard';
+import { Trophy, Activity, Flame, Medal } from 'lucide-react';
+import { motion } from 'framer-motion';
 
-interface StatsProps {
-  onEditLog?: (log: TrainingLog) => void;
-}
 
-export default function Stats({ onEditLog }: StatsProps) {
+
+export default function Stats() {
   const [logs, setLogs] = useState<TrainingLog[]>([]);
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
   useEffect(() => {
     setLogs(db.getLogs());
   }, []);
 
-  // --- Heatmap Data (Last 12 weeks = 84 days) ---
-  const heatmapData = useMemo(() => {
+  // --- Weekly Volume Data (Last 4 Weeks) ---
+  const weeklyVolume = useMemo(() => {
     const data = [];
-    for (let i = 83; i >= 0; i--) {
-      const d = subDays(new Date(), i);
-      const dateStr = d.toDateString();
-      const count = logs.filter(l => new Date(l.created_at).toDateString() === dateStr).length;
-      data.push({ date: d, count });
+    const now = new Date();
+    for (let i = 3; i >= 0; i--) {
+      const start = subDays(now, i * 7 + 7);
+      const end = subDays(now, i * 7);
+      const count = logs.filter(l => {
+        const d = new Date(l.created_at);
+        return d > start && d <= end;
+      }).length;
+      data.push({ week: i === 0 ? 'Cette Semaine' : `S-${i}`, count });
     }
     return data;
   }, [logs]);
@@ -54,7 +54,7 @@ export default function Stats({ onEditLog }: StatsProps) {
   const flData = getGraphData('Front Lever', 'Hold', 'duration');
   const plData = getGraphData('Planche', 'Hold', 'duration');
   const hsData = getGraphData('Handstand', 'Hold', 'duration');
-  const pullData = getGraphData('Accessoire', 'Pull', 'weight');
+  const pullData = getGraphData('Tractions', 'Pull', 'weight');
 
   // --- Readiness Trend ---
   const energyData = [...logs]
@@ -75,7 +75,7 @@ export default function Stats({ onEditLog }: StatsProps) {
         log.sets.forEach(s => {
           if (s.movement === 'Front Lever' && s.mechanic === 'Hold' && s.duration) bestFl = Math.max(bestFl, s.duration);
           if (s.movement === 'Planche' && s.mechanic === 'Hold' && s.duration) bestPl = Math.max(bestPl, s.duration);
-          if (s.movement === 'Accessoire' && s.mechanic === 'Pull' && s.weight) maxPull = Math.max(maxPull, s.weight);
+          if (s.movement === 'Tractions' && s.mechanic === 'Pull' && s.weight) maxPull = Math.max(maxPull, s.weight);
         });
       }
     });
@@ -98,7 +98,7 @@ export default function Stats({ onEditLog }: StatsProps) {
           <PRBadge icon={<Trophy size={16} />} title="Max Pull" value={`+${prs.maxPull}kg`} delay={0.3} />
         </div>
 
-        {/* Heatmap */}
+        {/* Weekly Volume */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -106,56 +106,20 @@ export default function Stats({ onEditLog }: StatsProps) {
         >
           <div className="flex items-center gap-2 mb-4">
             <Activity size={18} className="text-brand-text" />
-            <h3 className="text-[10px] uppercase font-bold tracking-widest text-brand-text/60">Activité (12 Semaines)</h3>
+            <h3 className="text-[10px] uppercase font-bold tracking-widest text-brand-text/60">Volume (4 Semaines)</h3>
           </div>
-          <div className="flex flex-wrap gap-1.5 justify-end">
-            {heatmapData.map((d, i) => (
-              <button 
-                key={i} 
-                onClick={() => setSelectedDate(d.date)}
-                className={`w-3.5 h-3.5 rounded-sm transition-all hover:scale-125 focus:outline-none ${
-                  selectedDate?.toDateString() === d.date.toDateString() ? 'ring-2 ring-brand-text ring-offset-1 ring-offset-brand-bg' : ''
-                } ${
-                  d.count === 0 ? 'bg-brand-border/20 hover:bg-brand-border/40' : 
-                  d.count === 1 ? 'bg-brand-accent/40' : 
-                  d.count === 2 ? 'bg-brand-accent/70' : 
-                  'bg-brand-accent'
-                }`}
-                title={`${format(d.date, 'dd MMM')} : ${d.count} session(s)`}
-              />
-            ))}
+          <div className="h-40 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={weeklyVolume} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+                <XAxis dataKey="week" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'var(--brand-border)', fontWeight: 600 }} dy={10} />
+                <Tooltip
+                  cursor={{ fill: 'var(--brand-border)', opacity: 0.2 }}
+                  contentStyle={{ backgroundColor: 'var(--brand-bg)', borderColor: 'var(--brand-border)', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold' }}
+                />
+                <Bar dataKey="count" fill="var(--brand-accent)" radius={[6, 6, 6, 6]} maxBarSize={40} />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
-
-          <AnimatePresence>
-            {selectedDate && (
-              <motion.div
-                initial={{ opacity: 0, height: 0, marginTop: 0 }}
-                animate={{ opacity: 1, height: 'auto', marginTop: 24 }}
-                exit={{ opacity: 0, height: 0, marginTop: 0 }}
-                className="overflow-hidden border-t border-brand-border/30 pt-4"
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-bold text-sm text-brand-text flex items-center gap-2">
-                    <Activity size={14} className="text-brand-accent" />
-                    Séance du {format(selectedDate, 'dd/MM/yyyy')}
-                  </h3>
-                  <button 
-                    onClick={() => setSelectedDate(null)} 
-                    className="p-1 rounded-md bg-brand-border/20 text-brand-text/50 hover:text-brand-text transition-colors"
-                  >
-                    <CloseIcon size={14} />
-                  </button>
-                </div>
-                <div className="max-h-80 overflow-y-auto custom-scrollbar pr-2">
-                  <Dashboard 
-                    logs={logs.filter(l => new Date(l.created_at).toDateString() === selectedDate.toDateString())} 
-                    onDelete={(id) => { db.deleteLog(id); setLogs(db.getLogs()); }}
-                    onEdit={onEditLog}
-                  />
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
         </motion.div>
 
         {/* Chart 1: Front Lever */}

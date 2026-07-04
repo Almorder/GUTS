@@ -35,8 +35,9 @@ export function generateProgram(
     const sets: SubSet[] = [];
     
     // Warmup
-    sets.push({ movement: 'Accessoire', mechanic: 'Raise', level: 'Tuck', reps: 15, targetRest: 60 });
-    sets.push({ movement: 'Accessoire', mechanic: 'Raise', level: 'Tuck', reps: 15, targetRest: 60 });
+    // Warmup
+    sets.push({ movement: 'Scapular Pulls', mechanic: 'Pull', level: 'Base', reps: 15, targetRest: 60 });
+    sets.push({ movement: 'Skin the Cat', mechanic: 'Pull', level: 'Base', reps: 5, targetRest: 60 });
     
     // Main Focus (Front Lever)
     for(let i=0; i<setsMain; i++) {
@@ -59,7 +60,7 @@ export function generateProgram(
     // Accessories SuperSet (Core)
     for(let i=0; i<3; i++) {
       sets.push({ movement: 'L-sit', mechanic: 'Hold', level: 'Tuck', duration: 0, targetDuration: 15, isSuperSet: true });
-      sets.push({ movement: 'Renforcement', mechanic: 'Hold', level: 'Tuck', duration: 0, targetDuration: 30, targetRest: 90 });
+      sets.push({ movement: 'Renforcement Core', mechanic: 'Hold', level: 'Tuck', duration: 0, targetDuration: 30, targetRest: 90 });
     }
 
     return sets;
@@ -72,7 +73,7 @@ export function generateProgram(
     
     const sets: SubSet[] = [];
     
-    sets.push({ movement: 'Accessoire', mechanic: 'Hold', level: 'Tuck', duration: 0, targetDuration: 20, targetRest: 60 });
+    sets.push({ movement: 'Planche Lean', mechanic: 'Hold', level: 'Base', duration: 0, targetDuration: 20, targetRest: 60 });
     
     for(let i=0; i<setsMain; i++) {
       sets.push({

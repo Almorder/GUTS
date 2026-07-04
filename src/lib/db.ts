@@ -1,7 +1,7 @@
 export type CycleType = 'Force' | 'Volume' | 'Décharge';
-export type Movement = 'Front Lever' | 'Planche' | 'Handstand' | 'Tractions' | 'Dips' | 'L-sit' | 'Renforcement' | 'Accessoire';
+export type Movement = 'Front Lever' | 'Planche' | 'Handstand' | 'Tractions' | 'Dips' | 'L-sit' | 'Accessoire' | 'Renforcement' | 'Scapular Pulls' | 'Skin the Cat' | 'Renforcement Core' | 'Planche Lean';
 export type Mechanic = 'Hold' | 'Pull' | 'Negative' | 'Raise';
-export type Level = 'Tuck' | 'Adv Tuck' | 'Half Lay' | 'Full';
+export type Level = 'Tuck' | 'Adv Tuck' | 'Half Lay' | 'Full' | 'Straddle' | 'Base';
 
 export interface SubSet {
   movement: Movement;
