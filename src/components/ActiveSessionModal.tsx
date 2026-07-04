@@ -237,8 +237,8 @@ export default function ActiveSessionModal({ session, cycleType, onClose, onSave
 
                 <div className="bg-brand-bg border border-brand-border/50 rounded-3xl p-5 shadow-sm mb-6">
                   <div className="text-center mb-5">
-                    <span className="text-xs font-bold text-brand-accent bg-brand-accent/10 px-3 py-1.5 rounded-lg inline-block">
-                      Objectif du Coach : {currentSet.targetReps ? `${currentSet.targetReps}r` : ''} {currentSet.targetDuration ? `${currentSet.targetDuration}s` : ''} {currentSet.targetWeight ? `+${currentSet.targetWeight}kg` : ''}
+                    <span className={`text-xs font-bold px-3 py-1.5 rounded-lg inline-block ${currentSet.isAmrap ? 'bg-orange-500/10 text-orange-500' : 'bg-brand-accent/10 text-brand-accent'}`}>
+                      {currentSet.isAmrap ? '🔥 AMRAP (Max Reps/Temps)' : 'Objectif du Coach'} : {currentSet.targetReps ? `${currentSet.targetReps}r` : ''} {currentSet.targetDuration ? `${currentSet.targetDuration}s` : ''} {currentSet.targetWeight ? `+${currentSet.targetWeight}kg` : ''}
                     </span>
                   </div>
 

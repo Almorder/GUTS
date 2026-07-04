@@ -266,19 +266,20 @@ export default function Planner() {
                             if (!session.structured_focus) return session.focus.map((f, j) => <span key={j} className="block text-xs font-bold text-brand-text bg-brand-bg px-2 py-0.5 rounded-md border border-brand-border/30">{f}</span>);
                             
                             // Group by movement
-                            const groups = new Map<string, { sets: number, target: string }>();
+                            const groups = new Map<string, { sets: number, target: string, hasAmrap: boolean }>();
                             session.structured_focus.forEach(set => {
                               if (!groups.has(set.movement)) {
                                 const targetStr = set.targetDuration ? `${set.targetDuration}s` : (set.targetReps ? `${set.targetReps}r` : '');
-                                groups.set(set.movement, { sets: 1, target: targetStr });
+                                groups.set(set.movement, { sets: 1, target: targetStr, hasAmrap: !!set.isAmrap });
                               } else {
                                 groups.get(set.movement)!.sets += 1;
+                                if (set.isAmrap) groups.get(set.movement)!.hasAmrap = true;
                               }
                             });
 
                             return Array.from(groups.entries()).map(([mov, data], j) => (
                               <span key={j} className="block text-xs font-medium text-brand-text/80">
-                                {data.sets > 1 ? `${data.sets}x ` : ''}<strong className="text-brand-text">{mov}</strong> {data.target ? `(${data.target})` : ''}
+                                {data.sets > 1 ? `${data.sets}x ` : ''}<strong className="text-brand-text">{mov}</strong> {data.target ? `(${data.target})` : ''} {data.hasAmrap && <span className="text-orange-500 font-bold">+AMRAP</span>}
                               </span>
                             ));
                           })()}

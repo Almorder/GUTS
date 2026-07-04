@@ -55,7 +55,8 @@ export function generateProgram(
       sets.push({
         movement: 'Front Lever', mechanic: 'Hold', level: flLevel,
         duration: 0, targetDuration: Math.max(2, Math.round(prFL * intensity)),
-        targetRest: restMain
+        targetRest: restMain,
+        isAmrap: i === setsMain - 1
       });
     }
 
@@ -64,7 +65,8 @@ export function generateProgram(
       sets.push({
         movement: 'Tractions', mechanic: 'Pull', level: 'Full',
         reps: 0, targetReps: Math.max(3, Math.round(prPull * intensity)),
-        targetRest: restSec
+        targetRest: restSec,
+        isAmrap: i === setsSec - 1
       });
     }
 
@@ -91,7 +93,8 @@ export function generateProgram(
       sets.push({
         movement: 'Planche', mechanic: 'Hold', level: plLevel,
         duration: 0, targetDuration: Math.max(2, Math.round(prPlanche * intensity)),
-        targetRest: restMain
+        targetRest: restMain,
+        isAmrap: i === setsMain - 1
       });
     }
 
@@ -99,7 +102,8 @@ export function generateProgram(
       sets.push({
         movement: 'Dips', mechanic: 'Push', level: 'Full',
         reps: 0, targetReps: Math.max(5, Math.round(prDips * intensity)),
-        targetRest: restSec
+        targetRest: restSec,
+        isAmrap: i === setsSec - 1
       });
     }
 
@@ -121,13 +125,14 @@ export function generateProgram(
       sets.push({
         movement: 'Handstand', mechanic: 'Hold', level: hsLevel,
         duration: 0, targetDuration: Math.max(5, Math.round(prHS * intensity)),
-        targetRest: restMain
+        targetRest: restMain,
+        isAmrap: i === setsMain - 1
       });
     }
 
     for(let i=0; i<setsSec; i++) {
-      sets.push({ movement: 'Tractions', mechanic: 'Pull', level: 'Full', reps: 0, targetReps: 8, isSuperSet: true });
-      sets.push({ movement: 'Dips', mechanic: 'Push', level: 'Full', reps: 0, targetReps: 10, targetRest: 120 });
+      sets.push({ movement: 'Tractions', mechanic: 'Pull', level: 'Full', reps: 0, targetReps: 8, isSuperSet: true, isAmrap: i === setsSec - 1 });
+      sets.push({ movement: 'Dips', mechanic: 'Push', level: 'Full', reps: 0, targetReps: 10, targetRest: 120, isAmrap: i === setsSec - 1 });
     }
 
     return sets;

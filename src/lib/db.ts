@@ -15,6 +15,7 @@ export interface SubSet {
   targetWeight?: number; // Predicted coach target
   targetRest?: number; // Recommended rest in seconds after this set
   isSuperSet?: boolean; // If true, immediately jump to the next set without rest
+  isAmrap?: boolean; // If true, this is the final set meant to go to absolute failure (As Many Reps As Possible)
 }
 
 export interface TrainingLog {
