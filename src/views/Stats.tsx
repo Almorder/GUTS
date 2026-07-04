@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { db } from '../lib/db';
-import type { TrainingLog, Movement, Mechanic } from '../lib/db';
+import type { TrainingLog, Movement, Mechanic, Level } from '../lib/db';
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { format, subDays } from 'date-fns';
 import { Trophy, Activity, Flame, Medal } from 'lucide-react';
@@ -32,14 +32,31 @@ export default function Stats() {
   }, [logs]);
 
   // --- Graph Extractor ---
-  const getGraphData = (movement: Movement, mechanic: Mechanic, type: 'duration' | 'reps' | 'weight') => {
+  const LEVELS_ORDER: Level[] = ['Base', 'Tuck', 'Adv Tuck', 'Straddle', 'Half Lay', 'Full'];
+  
+  const getBestLevelForMovement = (movement: Movement, mechanic: Mechanic): Level => {
+    let highestIdx = 0;
+    logs.forEach(log => {
+      if (log.sets) {
+        log.sets.forEach(s => {
+          if (s.movement === movement && s.mechanic === mechanic) {
+            const idx = LEVELS_ORDER.indexOf(s.level as Level);
+            if (idx > highestIdx) highestIdx = idx;
+          }
+        });
+      }
+    });
+    return LEVELS_ORDER[highestIdx];
+  };
+
+  const getGraphData = (movement: Movement, mechanic: Mechanic, type: 'duration' | 'reps' | 'weight', level: Level) => {
     return [...logs]
       .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
       .map(log => {
         let val = 0;
         if (log.sets) {
           for (const s of log.sets) {
-            if (s.movement === movement && s.mechanic === mechanic) {
+            if (s.movement === movement && s.mechanic === mechanic && s.level === level) {
               if (type === 'duration' && s.duration) val = Math.max(val, s.duration);
               if (type === 'reps' && s.reps) val = Math.max(val, s.reps);
               if (type === 'weight' && s.weight) val = Math.max(val, s.weight);
@@ -51,11 +68,20 @@ export default function Stats() {
       .filter(d => d.value > 0);
   };
 
-  const flData = getGraphData('Front Lever', 'Hold', 'duration');
-  const plData = getGraphData('Planche', 'Hold', 'duration');
-  const hsData = getGraphData('Handstand', 'Hold', 'duration');
-  const pullData = getGraphData('Tractions', 'Pull', 'reps');
-  const dipsData = getGraphData('Dips', 'Push', 'reps');
+  const flBestLvl = getBestLevelForMovement('Front Lever', 'Hold');
+  const flData = getGraphData('Front Lever', 'Hold', 'duration', flBestLvl);
+
+  const plBestLvl = getBestLevelForMovement('Planche', 'Hold');
+  const plData = getGraphData('Planche', 'Hold', 'duration', plBestLvl);
+
+  const hsBestLvl = getBestLevelForMovement('Handstand', 'Hold');
+  const hsData = getGraphData('Handstand', 'Hold', 'duration', hsBestLvl);
+
+  const pullBestLvl = getBestLevelForMovement('Tractions', 'Pull');
+  const pullData = getGraphData('Tractions', 'Pull', 'reps', pullBestLvl);
+
+  const dipsBestLvl = getBestLevelForMovement('Dips', 'Push');
+  const dipsData = getGraphData('Dips', 'Push', 'reps', dipsBestLvl);
 
   // --- Readiness Trend ---
   const energyData = [...logs]
@@ -127,19 +153,19 @@ export default function Stats() {
         </motion.div>
 
         {/* Chart 1: Front Lever */}
-        <ChartCard title="Front Lever Hold (sec)" data={flData} dataKey="value" color="var(--brand-accent)" />
+        <ChartCard title={`Front Lever (${flBestLvl}) (sec)`} data={flData} dataKey="value" color="var(--brand-accent)" />
 
         {/* Chart 2: Planche */}
-        <ChartCard title="Planche Hold (sec)" data={plData} dataKey="value" color="var(--brand-text)" />
+        <ChartCard title={`Planche (${plBestLvl}) (sec)`} data={plData} dataKey="value" color="var(--brand-text)" />
 
         {/* Chart 3: Handstand */}
-        <ChartCard title="Handstand Hold (sec)" data={hsData} dataKey="value" color="#8f8c85" />
+        <ChartCard title={`Handstand (${hsBestLvl}) (sec)`} data={hsData} dataKey="value" color="#8f8c85" />
 
         {/* Chart 4: Weighted Pull */}
-        <ChartCard title="Tractions (reps)" data={pullData} dataKey="value" color="var(--brand-accent)" />
+        <ChartCard title={`Tractions (${pullBestLvl}) (reps)`} data={pullData} dataKey="value" color="var(--brand-accent)" />
 
         {/* Chart 5: Dips */}
-        <ChartCard title="Dips (reps)" data={dipsData} dataKey="value" color="#8f8c85" />
+        <ChartCard title={`Dips (${dipsBestLvl}) (reps)`} data={dipsData} dataKey="value" color="#8f8c85" />
 
         {/* Chart 5: Readiness Trend */}
         <ChartCard title="Readiness Trend (Energy)" data={energyData} dataKey="energy" color="var(--brand-text)" hideYAxis />
