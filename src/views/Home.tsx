@@ -7,7 +7,7 @@ import SkillCard from '../components/SkillCard';
 import Dashboard from '../components/Dashboard';
 import { Target } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import QuickUpdateModal from '../components/QuickUpdateModal';
+import SkillDetailModal from '../components/SkillDetailModal';
 import ExamModal from '../components/ExamModal';
 
 interface HomeProps {
@@ -93,13 +93,11 @@ export default function Home({ logs, onRefresh, onEditLog }: HomeProps) {
 
       <AnimatePresence>
         {selectedSkill && (
-          <QuickUpdateModal
+          <SkillDetailModal
             skill={selectedSkill}
+            logs={logs}
             onClose={() => setSelectedSkill(null)}
-            onSave={() => {
-              setSelectedSkill(null);
-              if (onRefresh) onRefresh();
-            }}
+            onEditLog={onEditLog}
           />
         )}
         {isExamModalOpen && (

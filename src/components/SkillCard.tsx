@@ -14,6 +14,7 @@ export default function SkillCard({ skill, onClick }: SkillCardProps) {
   const tier = getCurrentTier(skill);
   const totalTiers = skill.milestones.length;
   const isMaxed = tier >= totalTiers;
+  const activeTierLabel = skill.milestones[Math.min(tier, totalTiers - 1)]?.level;
 
   return (
     <motion.div 
@@ -62,13 +63,16 @@ export default function SkillCard({ skill, onClick }: SkillCardProps) {
                 {skill.milestones[0]?.unit}
               </span>
             </span>
+            <span className="text-[10px] text-brand-text/40 font-bold uppercase tracking-wider bg-brand-text/5 px-2 py-0.5 rounded-md">
+              {activeTierLabel}
+            </span>
             {nextMilestone && !isMaxed && (
-              <span className="text-[10px] text-brand-text/40 font-bold uppercase tracking-wider">
-                → {nextMilestone.target}{nextMilestone.unit} <span className="lowercase font-normal">({nextMilestone.label})</span>
+              <span className="text-[10px] text-brand-text/40 font-bold uppercase tracking-wider ml-auto">
+                → {nextMilestone.target}{nextMilestone.unit}
               </span>
             )}
             {isMaxed && (
-              <span className="text-[10px] text-brand-accent font-bold uppercase tracking-widest bg-brand-accent/10 px-2 py-0.5 rounded-md">
+              <span className="text-[10px] text-brand-accent font-bold uppercase tracking-widest bg-brand-accent/10 px-2 py-0.5 rounded-md ml-auto">
                 Maxed
               </span>
             )}
